@@ -38,6 +38,11 @@ export interface VentaItem {
   costoUnitario: number;
 }
 
+export interface AbonoVenta {
+  monto: number;
+  fecha: number;
+}
+
 export interface Venta {
   id: string;
   items: VentaItem[];
@@ -52,14 +57,43 @@ export interface Venta {
   origen: "tienda" | "manual";
   /** Venta a crédito (fiado): el cliente queda debiendo. */
   fiado: boolean;
-  /** Si la venta (o su deuda) ya fue cobrada. */
+  /** Si la venta (o su deuda) ya fue cobrada por completo. */
   pagado: boolean;
   /** Fecha acordada para cobrar la deuda (epoch ms) o null. */
   fechaCobro: number | null;
+  /** Pagos parciales registrados sobre la deuda. */
+  abonos?: AbonoVenta[];
   creadoEn: number;
 }
 
 export type VentaInput = Omit<Venta, "id" | "creadoEn">;
+
+/** Monto ya abonado de una venta. */
+export function totalAbonado(v: Venta): number {
+  return (v.abonos ?? []).reduce((acc, a) => acc + a.monto, 0);
+}
+
+/** Saldo pendiente por cobrar de una venta fiada. */
+export function saldoPendiente(v: Venta): number {
+  return Math.max(0, v.total - totalAbonado(v));
+}
+
+export interface Gasto {
+  id: string;
+  descripcion: string;
+  /** Ej.: Proveedores, Delivery, Servicios, Otros. */
+  categoria: string;
+  monto: number;
+  creadoEn: number;
+}
+
+export type GastoInput = Omit<Gasto, "id" | "creadoEn">;
+
+export interface ConfigTienda {
+  /** Tasa de cambio: bolívares por 1 USD. 0 = no mostrar precios en Bs. */
+  tasaBs: number;
+  actualizadoEn: number;
+}
 
 export interface Cliente {
   id: string;

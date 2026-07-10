@@ -9,7 +9,7 @@ import { CategoryTabs } from "@/components/store/CategoryTabs";
 import { ProductCard } from "@/components/store/ProductCard";
 import { ProductModal } from "@/components/store/ProductModal";
 import { CarritoProvider } from "@/lib/cart-context";
-import { suscribirProductos } from "@/lib/store";
+import { suscribirConfig, suscribirProductos } from "@/lib/store";
 import type { Producto } from "@/lib/types";
 
 function Tienda() {
@@ -18,13 +18,18 @@ function Tienda() {
   const [categoria, setCategoria] = useState("Todos");
   const [busqueda, setBusqueda] = useState("");
   const [detalle, setDetalle] = useState<Producto | null>(null);
+  const [tasaBs, setTasaBs] = useState(0);
 
   useEffect(() => {
     const cancelar = suscribirProductos((datos) => {
       setProductos(datos.filter((p) => p.activo));
       setCargando(false);
     });
-    return cancelar;
+    const cancelarConfig = suscribirConfig((c) => setTasaBs(c.tasaBs));
+    return () => {
+      cancelar();
+      cancelarConfig();
+    };
   }, []);
 
   const soloCategorias = useMemo(
@@ -113,7 +118,7 @@ function Tienda() {
             </div>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {destacados.map((producto) => (
-                <ProductCard key={producto.id} producto={producto} onVer={setDetalle} />
+                <ProductCard key={producto.id} producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
               ))}
             </div>
           </section>
@@ -140,7 +145,7 @@ function Tienda() {
           <motion.div layout className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
             <AnimatePresence mode="popLayout">
               {visibles.map((producto) => (
-                <ProductCard key={producto.id} producto={producto} onVer={setDetalle} />
+                <ProductCard key={producto.id} producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
               ))}
             </AnimatePresence>
           </motion.div>
@@ -159,7 +164,7 @@ function Tienda() {
 
       <Footer />
       <CartDrawer />
-      <ProductModal producto={detalle} onCerrar={() => setDetalle(null)} />
+      <ProductModal producto={detalle} onCerrar={() => setDetalle(null)} tasaBs={tasaBs} />
     </div>
   );
 }

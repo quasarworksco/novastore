@@ -13,16 +13,18 @@ import {
 import { Boton } from "@/components/ui/Boton";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
-import { formatoMoneda } from "@/lib/format";
+import { formatoBs, formatoMoneda } from "@/lib/format";
 import type { Producto } from "@/lib/types";
 
 interface Props {
   producto: Producto | null;
   onCerrar: () => void;
+  /** Tasa Bs por USD (0 = no mostrar precio en Bs). */
+  tasaBs?: number;
 }
 
 /** Ficha de producto con galería de múltiples imágenes (Cloudinary). */
-export function ProductModal({ producto, onCerrar }: Props) {
+export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
   const { agregar } = useCarrito();
   const [indice, setIndice] = useState(0);
 
@@ -125,8 +127,15 @@ export function ProductModal({ producto, onCerrar }: Props) {
                   <span className="text-xs uppercase tracking-wider text-slate-500">
                     Precio base
                   </span>
-                  <span className="text-2xl font-bold text-slate-900">
-                    {formatoMoneda(producto.precioVenta)}
+                  <span className="text-right">
+                    <span className="block text-2xl font-bold text-slate-900">
+                      {formatoMoneda(producto.precioVenta)}
+                    </span>
+                    {tasaBs > 0 && (
+                      <span className="block text-xs text-slate-400">
+                        {formatoBs(producto.precioVenta, tasaBs)}
+                      </span>
+                    )}
                   </span>
                 </div>
                 {producto.precioVentaDivisas < producto.precioVenta && (
@@ -135,8 +144,15 @@ export function ProductModal({ producto, onCerrar }: Props) {
                       <IconoBillete className="h-4 w-4" />
                       Divisas en físico
                     </span>
-                    <span className="text-lg font-bold text-emerald-600">
-                      {formatoMoneda(producto.precioVentaDivisas)}
+                    <span className="text-right">
+                      <span className="block text-lg font-bold text-emerald-600">
+                        {formatoMoneda(producto.precioVentaDivisas)}
+                      </span>
+                      {tasaBs > 0 && (
+                        <span className="block text-xs text-emerald-600/60">
+                          {formatoBs(producto.precioVentaDivisas, tasaBs)}
+                        </span>
+                      )}
                     </span>
                   </div>
                 )}

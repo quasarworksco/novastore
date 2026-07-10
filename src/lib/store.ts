@@ -12,7 +12,17 @@
 import { productosSemilla } from "@/data/seed";
 import { firebaseConfigurado } from "./firebase";
 import * as rest from "./firestore-rest";
-import type { Cliente, Producto, ProductoInput, Venta, VentaInput } from "./types";
+import type {
+  Cliente,
+  ConfigTienda,
+  Gasto,
+  GastoInput,
+  Producto,
+  ProductoInput,
+  Venta,
+  VentaInput,
+} from "./types";
+import { totalAbonado } from "./types";
 
 export const modoDemo = !firebaseConfigurado;
 
@@ -25,6 +35,8 @@ interface EstadoDemo {
   productos: Producto[];
   ventas: Venta[];
   clientes: Cliente[];
+  gastos?: Gasto[];
+  config?: ConfigTienda;
 }
 
 const CLAVE_DEMO = "novastore-demo-v1";
@@ -41,7 +53,7 @@ function cargarDemo(): EstadoDemo {
       /* re-sembrar */
     }
   }
-  estadoDemo = { productos: [...productosSemilla], ventas: [], clientes: [] };
+  estadoDemo = { productos: [...productosSemilla], ventas: [], clientes: [], gastos: [] };
   persistirDemo();
   return estadoDemo;
 }
@@ -121,6 +133,7 @@ const fuenteVentas = crearFuente<Venta>("ventas", porFecha);
 const fuenteClientes = crearFuente<Cliente>("clientes", (d) =>
   [...d].sort((a, b) => b.ultimoPedido - a.ultimoPedido)
 );
+const fuenteGastos = crearFuente<Gasto>("gastos", porFecha);
 
 /* ── Suscripciones públicas ──────────────────────────────────────── */
 
@@ -138,6 +151,87 @@ export function suscribirClientes(cb: (clientes: Cliente[]) => void): Unsubscrib
   if (modoDemo)
     return suscribirDemo((e) => [...e.clientes].sort((a, b) => b.ultimoPedido - a.ultimoPedido), cb);
   return fuenteClientes.suscribir(cb);
+}
+
+export function suscribirGastos(cb: (gastos: Gasto[]) => void): Unsubscribe {
+  if (modoDemo) return suscribirDemo((e) => porFecha(e.gastos ?? []), cb);
+  return fuenteGastos.suscribir(cb);
+}
+
+/* ── Configuración de la tienda (tasa de cambio) ─────────────────── */
+
+const CONFIG_POR_DEFECTO: ConfigTienda = { tasaBs: 0, actualizadoEn: 0 };
+let configActual: ConfigTienda = CONFIG_POR_DEFECTO;
+let configCargada = false;
+const oyentesConfig = new Set<(c: ConfigTienda) => void>();
+let intervaloConfig: ReturnType<typeof setInterval> | null = null;
+
+async function refrescarConfig(): Promise<void> {
+  try {
+    if (modoDemo) {
+      configActual = cargarDemo().config ?? CONFIG_POR_DEFECTO;
+    } else {
+      const doc = await rest.obtener<ConfigTienda & { id: string }>("config", "general");
+      if (doc) configActual = { tasaBs: doc.tasaBs ?? 0, actualizadoEn: doc.actualizadoEn ?? 0 };
+    }
+    configCargada = true;
+    oyentesConfig.forEach((cb) => cb(configActual));
+  } catch {
+    // Mantener la última configuración conocida.
+  }
+}
+
+export function suscribirConfig(cb: (config: ConfigTienda) => void): Unsubscribe {
+  oyentesConfig.add(cb);
+  if (configCargada) cb(configActual);
+  if (!intervaloConfig) {
+    refrescarConfig();
+    intervaloConfig = setInterval(refrescarConfig, 60000);
+  }
+  return () => {
+    oyentesConfig.delete(cb);
+    if (oyentesConfig.size === 0 && intervaloConfig) {
+      clearInterval(intervaloConfig);
+      intervaloConfig = null;
+    }
+  };
+}
+
+export async function guardarTasaBs(tasaBs: number): Promise<void> {
+  const ahora = Date.now();
+  if (modoDemo) {
+    cargarDemo().config = { tasaBs, actualizadoEn: ahora };
+    notificarDemo();
+  } else {
+    // PATCH crea el documento si no existe.
+    await rest.actualizar("config", "general", { tasaBs, actualizadoEn: ahora });
+  }
+  await refrescarConfig();
+}
+
+/* ── Gastos ──────────────────────────────────────────────────────── */
+
+export async function crearGasto(datos: GastoInput): Promise<void> {
+  const ahora = Date.now();
+  if (modoDemo) {
+    const estado = cargarDemo();
+    estado.gastos = [{ ...datos, id: idDemo("gasto"), creadoEn: ahora }, ...(estado.gastos ?? [])];
+    notificarDemo();
+    return;
+  }
+  await rest.crear("gastos", { ...datos, creadoEn: ahora });
+  await fuenteGastos.refrescar();
+}
+
+export async function eliminarGasto(id: string): Promise<void> {
+  if (modoDemo) {
+    const estado = cargarDemo();
+    estado.gastos = (estado.gastos ?? []).filter((g) => g.id !== id);
+    notificarDemo();
+    return;
+  }
+  await rest.eliminar("gastos", id);
+  await fuenteGastos.refrescar();
 }
 
 /* ── CRUD de productos ───────────────────────────────────────────── */
@@ -260,6 +354,21 @@ export async function registrarVenta(venta: VentaInput): Promise<void> {
 
 export async function actualizarEstadoVenta(id: string, estado: Venta["estado"]): Promise<void> {
   await actualizarVenta(id, { estado });
+}
+
+/**
+ * Registra un abono (pago parcial) sobre una venta fiada. Si con el abono
+ * se cubre el total, la venta queda marcada como pagada.
+ */
+export async function abonarVenta(venta: Venta, monto: number): Promise<void> {
+  const abonos = [...(venta.abonos ?? []), { monto, fecha: Date.now() }];
+  const acumulado = totalAbonado({ ...venta, abonos });
+  const pagado = acumulado >= venta.total - 0.005;
+  await actualizarVenta(venta.id, {
+    abonos,
+    pagado,
+    ...(pagado ? { estado: "entregada" as const } : {}),
+  });
 }
 
 /** Actualiza campos de una venta (estado, pagado, fechaCobro, etc.). */

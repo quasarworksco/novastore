@@ -255,3 +255,10 @@ export const IconoMenu = (p: IconProps) => (
     <path d="M4 7h16M4 12h16M4 17h16" />
   </Base>
 );
+
+export const IconoRecibo = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M6 3.5h12v17l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5v-17z" />
+    <path d="M9 8h6M9 11.5h6M9 15h3.5" />
+  </Base>
+);

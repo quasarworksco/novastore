@@ -1,4 +1,4 @@
-import { formatoMoneda } from "./format";
+import { formatoBs, formatoMoneda } from "./format";
 import type { ItemCarrito, MetodoPago } from "./types";
 import { precioSegunMetodo } from "./finance";
 
@@ -15,7 +15,8 @@ export function totalCarrito(items: ItemCarrito[], metodo: MetodoPago): number {
 export function enlacePedidoWhatsApp(
   items: ItemCarrito[],
   metodo: MetodoPago,
-  cliente: { nombre: string; telefono: string }
+  cliente: { nombre: string; telefono: string },
+  tasaBs = 0
 ): string {
   const lineas = items.map(({ producto, cantidad }) => {
     const unitario = precioSegunMetodo(producto, metodo);
@@ -25,12 +26,14 @@ export function enlacePedidoWhatsApp(
   const etiquetaPago =
     metodo === "divisas" ? "Divisas en efectivo (precio promocional)" : "Precio base";
 
+  const total = totalCarrito(items, metodo);
   const mensaje = [
     "Hola NovaStore, quiero hacer un pedido:",
     "",
     ...lineas,
     "",
-    `Total: ${formatoMoneda(totalCarrito(items, metodo))}`,
+    `Total: ${formatoMoneda(total)}`,
+    ...(tasaBs > 0 ? [`Total en Bs: ${formatoBs(total, tasaBs)}`] : []),
     `Metodo de pago: ${etiquetaPago}`,
     `Nombre: ${cliente.nombre}`,
     `Telefono: ${cliente.telefono}`,
