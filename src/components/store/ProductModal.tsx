@@ -27,13 +27,21 @@ interface Props {
 export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
   const { agregar } = useCarrito();
   const [indice, setIndice] = useState(0);
+  const [verMas, setVerMas] = useState(false);
 
   const imagenes = producto?.imagenes ?? [];
   const mover = (delta: number) =>
     setIndice((i) => (i + delta + imagenes.length) % imagenes.length);
 
+  const descripcionLarga = (producto?.descripcion.length ?? 0) > 140;
+
   return (
-    <AnimatePresence onExitComplete={() => setIndice(0)}>
+    <AnimatePresence
+      onExitComplete={() => {
+        setIndice(0);
+        setVerMas(false);
+      }}
+    >
       {producto && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -120,7 +128,25 @@ export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
               </div>
 
               <h2 className="text-xl font-bold leading-tight text-slate-900">{producto.nombre}</h2>
-              <p className="text-sm leading-relaxed text-slate-600">{producto.descripcion}</p>
+              {producto.descripcion && (
+                <div>
+                  <p
+                    className={`text-sm leading-relaxed text-slate-600 ${
+                      verMas ? "" : "line-clamp-3"
+                    }`}
+                  >
+                    {producto.descripcion}
+                  </p>
+                  {descripcionLarga && (
+                    <button
+                      onClick={() => setVerMas((v) => !v)}
+                      className="mt-1 text-xs font-semibold text-blue-600 transition hover:text-blue-800"
+                    >
+                      {verMas ? "Ver menos" : "Ver más"}
+                    </button>
+                  )}
+                </div>
+              )}
 
               <div className="mt-2 space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="flex items-baseline justify-between">

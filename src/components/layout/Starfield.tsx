@@ -27,10 +27,11 @@ const estrellas = Array.from({ length: 44 }, () => ({
 export function Starfield() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/* Glows muy suaves que se desplazan lentamente */}
-      <div className="absolute -left-24 top-[-8%] h-[380px] w-[380px] rounded-full bg-blue-200/25 blur-[130px] animate-blob-slow" />
-      <div className="absolute right-[-8%] top-[25%] h-[320px] w-[320px] rounded-full bg-sky-200/25 blur-[130px] animate-blob-slower" />
-      <div className="absolute bottom-[-12%] left-[35%] h-[360px] w-[360px] rounded-full bg-sky-200/20 blur-[140px] animate-blob-slow" />
+      {/* Glows azules profundos que se desplazan lentamente */}
+      <div className="absolute -left-24 top-[-8%] h-[420px] w-[420px] rounded-full bg-blue-500/25 blur-[130px] animate-blob-slow" />
+      <div className="absolute right-[-8%] top-[22%] h-[360px] w-[360px] rounded-full bg-sky-500/20 blur-[130px] animate-blob-slower" />
+      <div className="absolute bottom-[-12%] left-[32%] h-[400px] w-[400px] rounded-full bg-blue-600/15 blur-[140px] animate-blob-slow" />
+      <div className="absolute left-[8%] top-[55%] h-[260px] w-[260px] rounded-full bg-cyan-400/15 blur-[110px] animate-float" />
 
       {/* Estrellas titilantes */}
       <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
