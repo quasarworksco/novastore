@@ -1,10 +1,10 @@
 "use client";
 
-import { IconoBillete, IconoDolar } from "@/components/icons";
+import { IconoBasura, IconoBillete, IconoDolar } from "@/components/icons";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Insignia } from "@/components/ui/Insignia";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
-import { actualizarEstadoVenta } from "@/lib/store";
+import { actualizarEstadoVenta, eliminarVenta } from "@/lib/store";
 import type { Venta } from "@/lib/types";
 
 const tonoEstado: Record<Venta["estado"], "ambar" | "violeta" | "verde" | "rojo"> = {
@@ -24,6 +24,13 @@ function gananciaVenta(v: Venta): number {
 }
 
 export function TablaVentas({ ventas }: { ventas: Venta[] }) {
+  async function confirmarEliminar(v: Venta) {
+    const detalle = `${v.cliente.nombre || "cliente"} — ${formatoMoneda(v.total)}`;
+    if (window.confirm(`¿Seguro que quieres eliminar esta venta del historial?\n\n${detalle}\n\nEsta acción no se puede deshacer.`)) {
+      await eliminarVenta(v.id);
+    }
+  }
+
   return (
     <GlassCard className="overflow-hidden">
       <div className="overflow-x-auto">
@@ -36,7 +43,8 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
               <th className="px-3 py-4 font-medium">Pago</th>
               <th className="px-3 py-4 text-right font-medium">Total</th>
               <th className="px-3 py-4 text-right font-medium">Ganancia</th>
-              <th className="px-5 py-4 text-right font-medium">Estado</th>
+              <th className="px-3 py-4 text-right font-medium">Estado</th>
+              <th className="px-5 py-4 text-right font-medium">Acción</th>
             </tr>
           </thead>
           <tbody>
@@ -86,7 +94,7 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
                   >
                     {formatoMoneda(ganancia)}
                   </td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-3 py-3 text-right">
                     <select
                       value={v.estado}
                       onChange={(e) =>
@@ -107,6 +115,15 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      onClick={() => confirmarEliminar(v)}
+                      aria-label="Eliminar venta"
+                      className="ml-auto grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                    >
+                      <IconoBasura className="h-4 w-4" />
+                    </button>
                   </td>
                 </tr>
               );
