@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { FormularioProducto } from "@/components/admin/FormularioProducto";
 import { FormularioVentaManual } from "@/components/admin/FormularioVentaManual";
 import { CuentasPorCobrar } from "@/components/admin/CuentasPorCobrar";
+import { PanelGastos } from "@/components/admin/PanelGastos";
+import { TasaCambio } from "@/components/admin/TasaCambio";
 import { ResumenFinanciero } from "@/components/admin/ResumenFinanciero";
 import { StatCard } from "@/components/admin/StatCard";
 import { TablaClientes } from "@/components/admin/TablaClientes";
@@ -20,6 +22,7 @@ import {
   IconoMas,
   IconoMenu,
   IconoOjo,
+  IconoRecibo,
   IconoSalir,
   IconoUsuarios,
 } from "@/components/icons";
@@ -34,19 +37,22 @@ import {
   eliminarProducto,
   modoDemo,
   suscribirClientes,
+  suscribirGastos,
   suscribirProductos,
   suscribirVentas,
 } from "@/lib/store";
 import { productosSemilla } from "@/data/seed";
-import type { Cliente, Producto, Venta } from "@/lib/types";
+import type { Cliente, Gasto, Producto, Venta } from "@/lib/types";
+import { saldoPendiente } from "@/lib/types";
 
-type Pestana = "resumen" | "productos" | "ventas" | "cobrar" | "clientes";
+type Pestana = "resumen" | "productos" | "ventas" | "cobrar" | "gastos" | "clientes";
 
 const pestanas: { id: Pestana; etiqueta: string; Icono: typeof IconoGrafica }[] = [
   { id: "resumen", etiqueta: "Resumen", Icono: IconoGrafica },
   { id: "productos", etiqueta: "Productos", Icono: IconoCaja },
   { id: "ventas", etiqueta: "Ventas", Icono: IconoDolar },
   { id: "cobrar", etiqueta: "Por cobrar", Icono: IconoBillete },
+  { id: "gastos", etiqueta: "Gastos", Icono: IconoRecibo },
   { id: "clientes", etiqueta: "Clientes", Icono: IconoUsuarios },
 ];
 
@@ -56,6 +62,7 @@ export default function PaginaAdmin() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [gastos, setGastos] = useState<Gasto[]>([]);
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [formAbierto, setFormAbierto] = useState(false);
@@ -73,6 +80,7 @@ export default function PaginaAdmin() {
       suscribirProductos(setProductos),
       suscribirVentas(setVentas),
       suscribirClientes(setClientes),
+      suscribirGastos(setGastos),
     ];
     return () => cancelaciones.forEach((c) => c());
   }, [autenticado]);
@@ -295,7 +303,7 @@ export default function PaginaAdmin() {
                 />
                 <StatCard
                   etiqueta="Por cobrar"
-                  valor={formatoMoneda(porCobrar.reduce((a, v) => a + v.total, 0))}
+                  valor={formatoMoneda(porCobrar.reduce((a, v) => a + saldoPendiente(v), 0))}
                   detalle={`${porCobrar.length} deudas pendientes`}
                   icono={IconoBillete}
                   tono="ambar"
@@ -308,6 +316,8 @@ export default function PaginaAdmin() {
                   tono="cian"
                 />
               </section>
+
+              <TasaCambio />
 
               <ResumenFinanciero productos={productos} />
 
@@ -380,6 +390,15 @@ export default function PaginaAdmin() {
                 </Boton>
               </div>
               <CuentasPorCobrar ventas={ventas} />
+            </>
+          )}
+
+          {pestana === "gastos" && (
+            <>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
+                Control de gastos y ganancia neta
+              </h2>
+              <PanelGastos gastos={gastos} ventas={ventas} />
             </>
           )}
 

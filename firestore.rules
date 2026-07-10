@@ -27,5 +27,17 @@ service cloud.firestore {
       allow create, update: if true;
       allow delete: if false;
     }
+
+    // Configuración de la tienda (tasa de cambio Bs/USD).
+    match /config/{documento} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Gastos del negocio (panel administrativo).
+    match /gastos/{gasto} {
+      allow read: if true;
+      allow write: if true;
+    }
   }
 }

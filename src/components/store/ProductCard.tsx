@@ -5,15 +5,17 @@ import { motion } from "framer-motion";
 import { IconoBillete, IconoImagen, IconoMas } from "@/components/icons";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
-import { formatoMoneda } from "@/lib/format";
+import { formatoBs, formatoMoneda } from "@/lib/format";
 import type { Producto } from "@/lib/types";
 
 interface Props {
   producto: Producto;
   onVer: (producto: Producto) => void;
+  /** Tasa Bs por USD (0 = no mostrar precio en Bs). */
+  tasaBs?: number;
 }
 
-export function ProductCard({ producto, onVer }: Props) {
+export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
   const { agregar } = useCarrito();
   const agotado = producto.stock <= 0;
   const tienePromocion = producto.precioVentaDivisas < producto.precioVenta;
@@ -71,6 +73,11 @@ export function ProductCard({ producto, onVer }: Props) {
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="min-w-0">
             <p className="text-lg font-bold text-slate-900">{formatoMoneda(producto.precioVenta)}</p>
+            {tasaBs > 0 && (
+              <p className="text-[11px] leading-tight text-slate-400">
+                {formatoBs(producto.precioVenta, tasaBs)}
+              </p>
+            )}
             {tienePromocion && (
               <span className="mt-1 inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-700">
                 <IconoBillete className="h-3.5 w-3.5 shrink-0" />

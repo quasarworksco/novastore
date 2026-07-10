@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   IconoBasura,
@@ -17,8 +17,8 @@ import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { useCarrito } from "@/lib/cart-context";
 import { precioSegunMetodo } from "@/lib/finance";
-import { formatoMoneda } from "@/lib/format";
-import { registrarVenta } from "@/lib/store";
+import { formatoBs, formatoMoneda } from "@/lib/format";
+import { registrarVenta, suscribirConfig } from "@/lib/store";
 import type { MetodoPago } from "@/lib/types";
 import { enlacePedidoWhatsApp } from "@/lib/whatsapp";
 
@@ -32,6 +32,9 @@ export function CartDrawer() {
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [tasaBs, setTasaBs] = useState(0);
+
+  useEffect(() => suscribirConfig((c) => setTasaBs(c.tasaBs)), []);
 
   const listoParaPedir = carrito.items.length > 0 && nombre.trim().length > 1;
 
@@ -40,7 +43,7 @@ export function CartDrawer() {
     setEnviando(true);
 
     const cliente = { nombre: nombre.trim(), telefono: telefono.trim() };
-    const url = enlacePedidoWhatsApp(carrito.items, carrito.metodoPago, cliente);
+    const url = enlacePedidoWhatsApp(carrito.items, carrito.metodoPago, cliente, tasaBs);
 
     try {
       await registrarVenta({
@@ -234,9 +237,16 @@ export function CartDrawer() {
                     key={`${carrito.total}-${carrito.metodoPago}`}
                     initial={{ scale: 0.9, opacity: 0.6 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="text-2xl font-bold text-slate-900"
+                    className="text-right"
                   >
-                    {formatoMoneda(carrito.total)}
+                    <span className="block text-2xl font-bold text-slate-900">
+                      {formatoMoneda(carrito.total)}
+                    </span>
+                    {tasaBs > 0 && (
+                      <span className="block text-xs text-slate-400">
+                        {formatoBs(carrito.total, tasaBs)}
+                      </span>
+                    )}
                   </motion.span>
                 </div>
 
