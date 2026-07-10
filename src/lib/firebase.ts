@@ -1,5 +1,5 @@
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { initializeFirestore, type Firestore } from "firebase/firestore";
 
 // Configuración web de Firebase (pública por diseño); sobreescribible por env.
 const config = {
@@ -24,7 +24,9 @@ export function obtenerDb(): Firestore {
   }
   if (!db) {
     app = getApps()[0] ?? initializeApp(config);
-    db = getFirestore(app);
+    // Long-polling forzado: el transporte streaming (WebChannel) falla tras
+    // proxies y en algunas redes móviles; esto garantiza conectividad universal.
+    db = initializeFirestore(app, { experimentalForceLongPolling: true });
   }
   return db;
 }
