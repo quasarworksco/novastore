@@ -6,7 +6,7 @@ type Variante = "primario" | "vidrio" | "peligro" | "fantasma";
 
 const estilos: Record<Variante, string> = {
   primario:
-    "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-glow hover:brightness-110",
+    "bg-gradient-to-r from-blue-600 to-sky-500 text-white shadow-glow hover:brightness-110",
   vidrio:
     "border border-glass-border bg-white/80 text-slate-800 backdrop-blur hover:bg-white shadow-soft",
   peligro: "border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100",

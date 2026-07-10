@@ -258,7 +258,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                   type="checkbox"
                   checked={borrador.activo}
                   onChange={(e) => actualizar("activo", e.target.checked)}
-                  className="h-5 w-5 rounded-md border-slate-300 accent-indigo-600"
+                  className="h-5 w-5 rounded-md border-slate-300 accent-blue-600"
                 />
                 <span className="text-sm text-slate-600">Visible en la tienda</span>
               </label>
@@ -302,7 +302,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                   type="button"
                   disabled={subiendo}
                   onClick={() => inputArchivo.current?.click()}
-                  className="grid h-20 w-20 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-40"
+                  className="grid h-20 w-20 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-blue-400 hover:text-blue-600 disabled:opacity-40"
                 >
                   <span className="flex flex-col items-center gap-1 text-[10px]">
                     <IconoSubir className="h-5 w-5" />

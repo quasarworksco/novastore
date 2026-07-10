@@ -89,7 +89,7 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
                       className={`cursor-pointer rounded-full border bg-white px-2.5 py-1 text-xs font-medium outline-none ${
                         {
                           ambar: "border-amber-300 text-amber-700",
-                          violeta: "border-indigo-300 text-indigo-700",
+                          violeta: "border-blue-300 text-blue-700",
                           verde: "border-emerald-300 text-emerald-700",
                           rojo: "border-rose-300 text-rose-600",
                         }[tonoEstado[v.estado]]

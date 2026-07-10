@@ -17,7 +17,7 @@ export function Footer() {
           className="group text-xs text-slate-500 transition-colors hover:text-slate-900"
         >
           Desarrollo y arquitectura por{" "}
-          <span className="font-semibold text-indigo-600 underline-offset-4 group-hover:underline">
+          <span className="font-semibold text-blue-600 underline-offset-4 group-hover:underline">
             DGP Global Group
           </span>
         </a>
