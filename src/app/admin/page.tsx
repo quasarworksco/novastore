@@ -23,12 +23,14 @@ import { Boton } from "@/components/ui/Boton";
 import { Insignia } from "@/components/ui/Insignia";
 import { formatoMoneda } from "@/lib/format";
 import {
+  crearProducto,
   eliminarProducto,
   modoDemo,
   suscribirClientes,
   suscribirProductos,
   suscribirVentas,
 } from "@/lib/store";
+import { productosSemilla } from "@/data/seed";
 import type { Cliente, Producto, Venta } from "@/lib/types";
 
 type Pestana = "resumen" | "productos" | "ventas" | "clientes";
@@ -47,6 +49,7 @@ export default function PaginaAdmin() {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [formAbierto, setFormAbierto] = useState(false);
   const [productoEnEdicion, setProductoEnEdicion] = useState<Producto | null>(null);
+  const [sembrando, setSembrando] = useState(false);
 
   useEffect(() => {
     const cancelaciones = [
@@ -75,6 +78,25 @@ export default function PaginaAdmin() {
   async function confirmarEliminar(p: Producto) {
     if (window.confirm(`¿Eliminar «${p.nombre}» definitivamente?`)) {
       await eliminarProducto(p.id);
+    }
+  }
+
+  /** Carga el catálogo de ejemplo en la base de datos (solo con catálogo vacío). */
+  async function cargarCatalogoEjemplo() {
+    if (sembrando) return;
+    setSembrando(true);
+    try {
+      for (const { id, creadoEn, actualizadoEn, ...datos } of productosSemilla) {
+        await crearProducto(datos);
+      }
+    } catch (e) {
+      window.alert(
+        e instanceof Error
+          ? `No se pudo cargar el catálogo: ${e.message}`
+          : "No se pudo cargar el catálogo. Revisa las reglas de Firestore."
+      );
+    } finally {
+      setSembrando(false);
     }
   }
 
@@ -197,10 +219,17 @@ export default function PaginaAdmin() {
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">
                   Control de productos ({productos.length})
                 </h2>
-                <Boton onClick={abrirCrear}>
-                  <IconoMas className="h-4 w-4" />
-                  Nuevo producto
-                </Boton>
+                <div className="flex gap-2">
+                  {productos.length === 0 && (
+                    <Boton variante="vidrio" onClick={cargarCatalogoEjemplo} disabled={sembrando}>
+                      {sembrando ? "Cargando…" : "Cargar catálogo de ejemplo"}
+                    </Boton>
+                  )}
+                  <Boton onClick={abrirCrear}>
+                    <IconoMas className="h-4 w-4" />
+                    Nuevo producto
+                  </Boton>
+                </div>
               </div>
               <ResumenFinanciero productos={productos} />
               <TablaProductos

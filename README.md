@@ -19,13 +19,16 @@ Tienda online de alto impacto visual construida con **Next.js (App Router) + Typ
 
 ```bash
 npm install
-cp .env.example .env.local   # completa tus credenciales
 npm run dev                  # http://localhost:3000
 ```
 
-Sin variables de Firebase la app arranca en **modo demo**: catálogo de ejemplo y
-persistencia en `localStorage`, con toda la funcionalidad (tienda, carrito, admin, CRUD,
-métricas) operativa.
+La app viene conectada por defecto al proyecto Firebase **`novastore-c5457`** y al cloud de
+Cloudinary **`gingt9vy`** (valores sobreescribibles vía `.env.local`, ver `.env.example`).
+
+**Paso obligatorio en Firebase**: en la consola → *Firestore Database* → *Reglas*, publica el
+contenido de [`firestore.rules`](./firestore.rules); si la base quedó en "modo producción"
+(deniega todo), la tienda no podrá leer ni escribir. Con el catálogo vacío, el panel
+`/admin` → *Productos* ofrece un botón para **cargar el catálogo de ejemplo** con un clic.
 
 - Tienda: `/`
 - Panel administrativo: `/admin` (por defecto `admin` / `novastore2026`; cámbialo con
