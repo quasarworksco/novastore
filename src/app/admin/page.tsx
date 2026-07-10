@@ -37,6 +37,7 @@ import {
   eliminarProducto,
   modoDemo,
   suscribirClientes,
+  suscribirErrorDatos,
   suscribirGastos,
   suscribirProductos,
   suscribirVentas,
@@ -63,6 +64,7 @@ export default function PaginaAdmin() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [errorDatos, setErrorDatos] = useState(false);
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [formAbierto, setFormAbierto] = useState(false);
@@ -81,6 +83,7 @@ export default function PaginaAdmin() {
       suscribirVentas(setVentas),
       suscribirClientes(setClientes),
       suscribirGastos(setGastos),
+      suscribirErrorDatos(setErrorDatos),
     ];
     return () => cancelaciones.forEach((c) => c());
   }, [autenticado]);
@@ -189,6 +192,14 @@ export default function PaginaAdmin() {
           </div>
         </div>
       </header>
+
+      {errorDatos && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          No se pudo actualizar la información (conexión o límite diario gratuito de Firebase
+          alcanzado). Tus datos están a salvo en la base de datos; se muestra la última copia
+          disponible y todo volverá a la normalidad cuando la cuota se renueve.
+        </div>
+      )}
 
       {/* Pestañas en línea (escritorio) */}
       <nav className="mb-8 hidden gap-1 rounded-3xl border border-glass-border bg-white/70 p-1.5 shadow-soft backdrop-blur-xl sm:flex">

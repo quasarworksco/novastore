@@ -27,7 +27,6 @@ import { totalAbonado } from "./types";
 export const modoDemo = !firebaseConfigurado;
 
 type Unsubscribe = () => void;
-const INTERVALO_SONDEO_MS = 15000;
 
 /* ── Almacén demo (localStorage) ─────────────────────────────────── */
 
@@ -86,44 +85,128 @@ function suscribirDemo<T>(selector: (e: EstadoDemo) => T[], cb: (datos: T[]) => 
 
 /* ── Fuente REST con sondeo (para modo Firebase) ─────────────────── */
 
+/**
+ * Estrategia de lecturas pensada para la cuota gratuita de Firestore
+ * (50.000 lecturas/día; cada documento devuelto cuenta como 1 lectura):
+ *
+ *  - UNA carga por colección al abrir la página (nada de sondeo continuo:
+ *    un intervalo de 15s dejado abierto toda la noche agota la cuota él solo).
+ *  - Caché en localStorage: pinta al instante en visitas repetidas y sirve
+ *    de respaldo visual si la red o la cuota fallan.
+ *  - Revalidación solo al volver a la pestaña y si pasaron > 5 minutos.
+ *  - Refresco inmediato tras cada mutación (crear/editar/borrar).
+ */
+const TTL_REVALIDACION_MS = 5 * 60 * 1000;
+
 interface Fuente<T> {
   suscribir: (cb: (datos: T[]) => void) => Unsubscribe;
   refrescar: () => Promise<void>;
+  revalidarSiViejo: () => void;
+}
+
+/** Aviso global de fallo de lectura (cuota agotada / sin conexión). */
+const oyentesError = new Set<(hayError: boolean) => void>();
+let hayErrorLectura = false;
+
+function marcarErrorLectura(valor: boolean) {
+  if (hayErrorLectura !== valor) {
+    hayErrorLectura = valor;
+    oyentesError.forEach((cb) => cb(valor));
+  }
+}
+
+/** Suscripción al estado de salud de las lecturas (banner en la UI). */
+export function suscribirErrorDatos(cb: (hayError: boolean) => void): Unsubscribe {
+  oyentesError.add(cb);
+  cb(hayErrorLectura);
+  return () => oyentesError.delete(cb);
 }
 
 function crearFuente<T>(coleccion: string, ordenar: (datos: T[]) => T[]): Fuente<T> {
   const suscriptores = new Set<(datos: T[]) => void>();
+  const CLAVE_CACHE = `novastore-cache-${coleccion}`;
   let datos: T[] = [];
-  let intervalo: ReturnType<typeof setInterval> | null = null;
-  let cargadoAlMenosUnaVez = false;
+  let cargado = false;
+  let ultimaCarga = 0;
+  let enVuelo: Promise<void> | null = null;
 
-  async function refrescar() {
+  function leerCache(): T[] | null {
+    if (typeof window === "undefined") return null;
     try {
-      datos = ordenar(await rest.listar<T>(coleccion));
-      cargadoAlMenosUnaVez = true;
-      suscriptores.forEach((cb) => cb(datos));
+      const crudo = window.localStorage.getItem(CLAVE_CACHE);
+      return crudo ? (JSON.parse(crudo) as T[]) : null;
     } catch {
-      // Mantener los últimos datos ante un fallo puntual de red.
+      return null;
+    }
+  }
+
+  function guardarCache() {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(CLAVE_CACHE, JSON.stringify(datos));
+    } catch {
+      // cuota de localStorage excedida: seguir sin caché
+    }
+  }
+
+  function emitir() {
+    suscriptores.forEach((cb) => cb(datos));
+  }
+
+  function refrescar(): Promise<void> {
+    if (enVuelo) return enVuelo;
+    enVuelo = (async () => {
+      try {
+        datos = ordenar(await rest.listar<T>(coleccion));
+        cargado = true;
+        ultimaCarga = Date.now();
+        guardarCache();
+        marcarErrorLectura(false);
+        emitir();
+      } catch {
+        marcarErrorLectura(true);
+        // Fallback: mostrar la última copia local conocida.
+        if (!cargado) {
+          const cache = leerCache();
+          if (cache) {
+            datos = ordenar(cache);
+            cargado = true;
+            emitir();
+          }
+        }
+      } finally {
+        enVuelo = null;
+      }
+    })();
+    return enVuelo;
+  }
+
+  function revalidarSiViejo() {
+    if (suscriptores.size > 0 && Date.now() - ultimaCarga > TTL_REVALIDACION_MS) {
+      refrescar();
     }
   }
 
   function suscribir(cb: (datos: T[]) => void): Unsubscribe {
     suscriptores.add(cb);
-    if (cargadoAlMenosUnaVez) cb(datos);
-    if (!intervalo) {
+    if (cargado) {
+      cb(datos);
+      revalidarSiViejo();
+    } else {
+      // Pintado instantáneo desde caché mientras llega lo fresco.
+      const cache = leerCache();
+      if (cache) {
+        datos = ordenar(cache);
+        cb(datos);
+      }
       refrescar();
-      intervalo = setInterval(refrescar, INTERVALO_SONDEO_MS);
     }
     return () => {
       suscriptores.delete(cb);
-      if (suscriptores.size === 0 && intervalo) {
-        clearInterval(intervalo);
-        intervalo = null;
-      }
     };
   }
 
-  return { suscribir, refrescar };
+  return { suscribir, refrescar, revalidarSiViejo };
 }
 
 const porFecha = <T extends { creadoEn: number }>(d: T[]) => [...d].sort((a, b) => b.creadoEn - a.creadoEn);
@@ -134,6 +217,17 @@ const fuenteClientes = crearFuente<Cliente>("clientes", (d) =>
   [...d].sort((a, b) => b.ultimoPedido - a.ultimoPedido)
 );
 const fuenteGastos = crearFuente<Gasto>("gastos", porFecha);
+
+// Revalidar (con TTL) al volver a la pestaña, en lugar de sondear siempre.
+if (typeof document !== "undefined") {
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !modoDemo) {
+      [fuenteProductos, fuenteVentas, fuenteClientes, fuenteGastos].forEach((f) =>
+        f.revalidarSiViejo()
+      );
+    }
+  });
+}
 
 /* ── Suscripciones públicas ──────────────────────────────────────── */
 
@@ -161,10 +255,11 @@ export function suscribirGastos(cb: (gastos: Gasto[]) => void): Unsubscribe {
 /* ── Configuración de la tienda (tasa de cambio) ─────────────────── */
 
 const CONFIG_POR_DEFECTO: ConfigTienda = { tasaBs: 0, actualizadoEn: 0 };
+const CLAVE_CACHE_CONFIG = "novastore-cache-config";
 let configActual: ConfigTienda = CONFIG_POR_DEFECTO;
 let configCargada = false;
+let ultimaCargaConfig = 0;
 const oyentesConfig = new Set<(c: ConfigTienda) => void>();
-let intervaloConfig: ReturnType<typeof setInterval> | null = null;
 
 async function refrescarConfig(): Promise<void> {
   try {
@@ -173,27 +268,42 @@ async function refrescarConfig(): Promise<void> {
     } else {
       const doc = await rest.obtener<ConfigTienda & { id: string }>("config", "general");
       if (doc) configActual = { tasaBs: doc.tasaBs ?? 0, actualizadoEn: doc.actualizadoEn ?? 0 };
+      try {
+        window.localStorage.setItem(CLAVE_CACHE_CONFIG, JSON.stringify(configActual));
+      } catch {
+        /* sin caché */
+      }
     }
     configCargada = true;
+    ultimaCargaConfig = Date.now();
     oyentesConfig.forEach((cb) => cb(configActual));
   } catch {
-    // Mantener la última configuración conocida.
+    // Fallback a la última copia local conocida.
+    if (!configCargada && typeof window !== "undefined") {
+      try {
+        const crudo = window.localStorage.getItem(CLAVE_CACHE_CONFIG);
+        if (crudo) {
+          configActual = JSON.parse(crudo) as ConfigTienda;
+          configCargada = true;
+          oyentesConfig.forEach((cb) => cb(configActual));
+        }
+      } catch {
+        /* sin caché */
+      }
+    }
   }
 }
 
 export function suscribirConfig(cb: (config: ConfigTienda) => void): Unsubscribe {
   oyentesConfig.add(cb);
-  if (configCargada) cb(configActual);
-  if (!intervaloConfig) {
+  if (configCargada) {
+    cb(configActual);
+    if (Date.now() - ultimaCargaConfig > TTL_REVALIDACION_MS) refrescarConfig();
+  } else {
     refrescarConfig();
-    intervaloConfig = setInterval(refrescarConfig, 60000);
   }
   return () => {
     oyentesConfig.delete(cb);
-    if (oyentesConfig.size === 0 && intervaloConfig) {
-      clearInterval(intervaloConfig);
-      intervaloConfig = null;
-    }
   };
 }
 
