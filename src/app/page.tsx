@@ -105,23 +105,48 @@ function Tienda() {
           </div>
         </motion.section>
 
-        {/* Productos destacados */}
+        {/* Productos destacados: fondo propio para resaltar la selección */}
         {!cargando && destacados.length > 0 && categoria === "Todos" && busqueda.trim() === "" && (
-          <section className="mb-10">
-            <div className="mb-4 flex items-center gap-2">
-              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-blue-500">
-                <path d="M12 2c.4 3.6 2.4 5.6 6 6-3.6.4-5.6 2.4-6 6-.4-3.6-2.4-5.6-6-6 3.6-.4 5.6-2.4 6-6z" />
-              </svg>
-              <h2 className="text-lg font-bold tracking-tight text-slate-900">
-                Productos destacados
-              </h2>
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative mb-10 overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600/[0.06] via-sky-100/60 to-blue-50 p-5 shadow-glass sm:p-7"
+          >
+            <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-300/25 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-sky-300/25 blur-3xl" />
+            <div
+              className="pointer-events-none absolute inset-0 opacity-50"
+              style={{
+                backgroundImage:
+                  "radial-gradient(circle at 1px 1px, rgba(37,99,235,0.14) 1px, transparent 0)",
+                backgroundSize: "22px 22px",
+              }}
+            />
+
+            <div className="relative">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="grid h-9 w-9 place-items-center rounded-2xl bg-blue-600 text-white shadow-glow">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                      <path d="M12 2c.4 3.6 2.4 5.6 6 6-3.6.4-5.6 2.4-6 6-.4-3.6-2.4-5.6-6-6 3.6-.4 5.6-2.4 6-6z" />
+                    </svg>
+                  </span>
+                  <div>
+                    <h2 className="text-lg font-bold leading-tight tracking-tight text-slate-900">
+                      Productos destacados
+                    </h2>
+                    <p className="text-xs text-slate-500">Nuestra selección para ti</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {destacados.map((producto) => (
+                  <ProductCard key={producto.id} producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-              {destacados.map((producto) => (
-                <ProductCard key={producto.id} producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
-              ))}
-            </div>
-          </section>
+          </motion.section>
         )}
 
         {/* Categorías */}

@@ -371,6 +371,64 @@ export async function abonarVenta(venta: Venta, monto: number): Promise<void> {
   });
 }
 
+/* ── Gestión de clientes ─────────────────────────────────────────── */
+
+export async function eliminarCliente(id: string): Promise<void> {
+  if (modoDemo) {
+    const st = cargarDemo();
+    st.clientes = st.clientes.filter((c) => c.id !== id);
+    notificarDemo();
+    return;
+  }
+  await rest.eliminar("clientes", id);
+  await fuenteClientes.refrescar();
+}
+
+/**
+ * Une clientes duplicados: suma pedidos y total gastado en el cliente
+ * destino (conserva su nombre) y elimina los demás registros.
+ */
+export async function unirClientes(destino: Cliente, duplicados: Cliente[]): Promise<void> {
+  const pedidos = destino.pedidos + duplicados.reduce((a, c) => a + c.pedidos, 0);
+  const totalGastado = destino.totalGastado + duplicados.reduce((a, c) => a + c.totalGastado, 0);
+  const ultimoPedido = Math.max(destino.ultimoPedido, ...duplicados.map((c) => c.ultimoPedido));
+  const creadoEn = Math.min(destino.creadoEn, ...duplicados.map((c) => c.creadoEn));
+  // Conservar un teléfono si el destino no tiene.
+  const telefono = destino.telefono || duplicados.find((c) => c.telefono)?.telefono || "";
+
+  if (modoDemo) {
+    const st = cargarDemo();
+    const idsDuplicados = new Set(duplicados.map((c) => c.id));
+    const dest = st.clientes.find((c) => c.id === destino.id);
+    if (dest) Object.assign(dest, { pedidos, totalGastado, ultimoPedido, creadoEn, telefono });
+    st.clientes = st.clientes.filter((c) => !idsDuplicados.has(c.id));
+    notificarDemo();
+    return;
+  }
+
+  await rest.actualizar("clientes", destino.id, {
+    pedidos,
+    totalGastado,
+    ultimoPedido,
+    creadoEn,
+    telefono,
+  });
+  await Promise.all(duplicados.map((c) => rest.eliminar("clientes", c.id)));
+  await fuenteClientes.refrescar();
+}
+
+/** Elimina una venta del historial (no repone stock ni ajusta clientes). */
+export async function eliminarVenta(id: string): Promise<void> {
+  if (modoDemo) {
+    const st = cargarDemo();
+    st.ventas = st.ventas.filter((v) => v.id !== id);
+    notificarDemo();
+    return;
+  }
+  await rest.eliminar("ventas", id);
+  await fuenteVentas.refrescar();
+}
+
 /** Actualiza campos de una venta (estado, pagado, fechaCobro, etc.). */
 export async function actualizarVenta(id: string, datos: Partial<VentaInput>): Promise<void> {
   if (modoDemo) {
