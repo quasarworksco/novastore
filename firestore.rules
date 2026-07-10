@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Reglas mínimas para la tienda:
+// - Catálogo legible públicamente.
+// - Pedidos y clientes: solo creación/actualización desde el checkout.
+// - La administración de productos se recomienda hacerla con estas reglas
+//   abiertas SOLO en desarrollo; en producción usa Firebase Auth con un
+//   custom claim de admin y endurece los write.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /productos/{producto} {
+      allow read: if true;
+      // TODO producción: restringir a request.auth.token.admin == true
+      allow write: if true;
+    }
+
+    match /ventas/{venta} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if false;
+    }
+
+    match /clientes/{cliente} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+  }
+}
