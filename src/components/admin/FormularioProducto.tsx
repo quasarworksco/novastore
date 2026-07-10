@@ -15,6 +15,7 @@ import type { Producto } from "@/lib/types";
 interface Props {
   abierto: boolean;
   producto: Producto | null; // null = crear
+  categorias: string[]; // categorías ya usadas, para sugerencias
   onCerrar: () => void;
 }
 
@@ -28,19 +29,23 @@ interface Borrador {
   stock: string;
   imagenes: string[];
   activo: boolean;
+  destacado: boolean;
 }
 
 const borradorVacio: Borrador = {
   nombre: "",
   descripcion: "",
-  categoria: "Perfumes",
+  categoria: "",
   precioCosto: "",
   precioVenta: "",
   precioVentaDivisas: "",
   stock: "0",
   imagenes: [],
   activo: true,
+  destacado: false,
 };
+
+const CATEGORIAS_BASE = ["Perfumes", "Electrónica", "Accesorios", "Juguetes"];
 
 function vistaMargen(costo: number, venta: number) {
   if (!(costo > 0) || !(venta > 0)) return null;
@@ -59,7 +64,9 @@ function vistaMargen(costo: number, venta: number) {
   );
 }
 
-export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
+export function FormularioProducto({ abierto, producto, categorias, onCerrar }: Props) {
+  const sugerencias = Array.from(new Set([...CATEGORIAS_BASE, ...categorias])).sort();
+
   const [borrador, setBorrador] = useState<Borrador>(borradorVacio);
   const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -81,6 +88,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
             stock: String(producto.stock),
             imagenes: [...producto.imagenes],
             activo: producto.activo,
+            destacado: producto.destacado ?? false,
           }
         : borradorVacio
     );
@@ -134,6 +142,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
       stock: Math.max(0, parseInt(borrador.stock, 10) || 0),
       imagenes: borrador.imagenes,
       activo: borrador.activo,
+      destacado: borrador.destacado,
     };
 
     try {
@@ -196,10 +205,9 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                 onChange={(e) => actualizar("categoria", e.target.value)}
               />
               <datalist id="categorias-sugeridas">
-                <option value="Perfumes" />
-                <option value="Electrónica" />
-                <option value="Accesorios" />
-                <option value="Juguetes" />
+                {sugerencias.map((c) => (
+                  <option key={c} value={c} />
+                ))}
               </datalist>
             </div>
 
@@ -253,15 +261,26 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                 value={borrador.stock}
                 onChange={(e) => actualizar("stock", e.target.value)}
               />
-              <label className="flex cursor-pointer items-end gap-3 pb-2">
-                <input
-                  type="checkbox"
-                  checked={borrador.activo}
-                  onChange={(e) => actualizar("activo", e.target.checked)}
-                  className="h-5 w-5 rounded-md border-slate-300 accent-blue-600"
-                />
-                <span className="text-sm text-slate-600">Visible en la tienda</span>
-              </label>
+              <div className="flex flex-col justify-end gap-2 pb-2">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={borrador.activo}
+                    onChange={(e) => actualizar("activo", e.target.checked)}
+                    className="h-5 w-5 rounded-md border-slate-300 accent-blue-600"
+                  />
+                  <span className="text-sm text-slate-600">Visible en la tienda</span>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={borrador.destacado}
+                    onChange={(e) => actualizar("destacado", e.target.checked)}
+                    className="h-5 w-5 rounded-md border-slate-300 accent-blue-600"
+                  />
+                  <span className="text-sm text-slate-600">Producto destacado</span>
+                </label>
+              </div>
             </div>
 
             {/* Imágenes (Cloudinary) */}

@@ -12,7 +12,7 @@
 import { productosSemilla } from "@/data/seed";
 import { firebaseConfigurado } from "./firebase";
 import * as rest from "./firestore-rest";
-import type { Cliente, Producto, ProductoInput, Venta } from "./types";
+import type { Cliente, Producto, ProductoInput, Venta, VentaInput } from "./types";
 
 export const modoDemo = !firebaseConfigurado;
 
@@ -181,15 +181,13 @@ export async function eliminarProducto(id: string): Promise<void> {
 
 /* ── Registro de ventas y clientes ───────────────────────────────── */
 
-export async function registrarVenta(
-  venta: Omit<Venta, "id" | "creadoEn" | "estado">
-): Promise<void> {
+export async function registrarVenta(venta: VentaInput): Promise<void> {
   const ahora = Date.now();
   const telefono = venta.cliente.telefono.replace(/\D/g, "");
 
   if (modoDemo) {
     const estado = cargarDemo();
-    estado.ventas.unshift({ ...venta, id: idDemo("venta"), estado: "pendiente", creadoEn: ahora });
+    estado.ventas.unshift({ ...venta, id: idDemo("venta"), creadoEn: ahora });
     for (const item of venta.items) {
       const p = estado.productos.find((x) => x.id === item.productoId);
       if (p) p.stock = Math.max(0, p.stock - item.cantidad);
@@ -215,7 +213,7 @@ export async function registrarVenta(
     return;
   }
 
-  await rest.crear("ventas", { ...venta, estado: "pendiente", creadoEn: ahora });
+  await rest.crear("ventas", { ...venta, creadoEn: ahora });
 
   // Descontar stock (lectura-modificación-escritura por ítem).
   await Promise.all(
@@ -261,15 +259,20 @@ export async function registrarVenta(
 }
 
 export async function actualizarEstadoVenta(id: string, estado: Venta["estado"]): Promise<void> {
+  await actualizarVenta(id, { estado });
+}
+
+/** Actualiza campos de una venta (estado, pagado, fechaCobro, etc.). */
+export async function actualizarVenta(id: string, datos: Partial<VentaInput>): Promise<void> {
   if (modoDemo) {
     const st = cargarDemo();
     const venta = st.ventas.find((v) => v.id === id);
     if (venta) {
-      venta.estado = estado;
+      Object.assign(venta, datos);
       notificarDemo();
     }
     return;
   }
-  await rest.actualizar("ventas", id, { estado });
+  await rest.actualizar("ventas", id, datos as Record<string, unknown>);
   await fuenteVentas.refrescar();
 }

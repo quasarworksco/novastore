@@ -18,6 +18,8 @@ export interface Producto {
   /** URLs (Cloudinary) de las imágenes del producto. */
   imagenes: string[];
   activo: boolean;
+  /** Se muestra en la sección "Productos destacados" de la tienda. */
+  destacado: boolean;
   creadoEn: number;
   actualizadoEn: number;
 }
@@ -46,8 +48,18 @@ export interface Venta {
     telefono: string;
   };
   estado: "pendiente" | "confirmada" | "entregada" | "cancelada";
+  /** Origen: pedido de la tienda online o venta manual en tienda física. */
+  origen: "tienda" | "manual";
+  /** Venta a crédito (fiado): el cliente queda debiendo. */
+  fiado: boolean;
+  /** Si la venta (o su deuda) ya fue cobrada. */
+  pagado: boolean;
+  /** Fecha acordada para cobrar la deuda (epoch ms) o null. */
+  fechaCobro: number | null;
   creadoEn: number;
 }
+
+export type VentaInput = Omit<Venta, "id" | "creadoEn">;
 
 export interface Cliente {
   id: string;
