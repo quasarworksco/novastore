@@ -48,10 +48,10 @@ function vistaMargen(costo: number, venta: number) {
   const porcentaje = (margen / costo) * 100;
   const clase =
     porcentaje < 0
-      ? "text-rose-300"
+      ? "text-rose-600"
       : porcentaje < UMBRAL_MARGEN_BAJO
-        ? "text-amber-300"
-        : "text-emerald-300";
+        ? "text-amber-600"
+        : "text-emerald-600";
   return (
     <span className={`text-xs font-semibold ${clase}`}>
       {formatoMoneda(margen)} ({formatoPorcentaje(porcentaje)})
@@ -158,7 +158,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onCerrar}
-          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm"
         >
           <motion.form
             initial={{ opacity: 0, scale: 0.94, y: 24 }}
@@ -167,17 +167,17 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
             transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
             onClick={(e) => e.stopPropagation()}
             onSubmit={guardar}
-            className="my-8 w-full max-w-2xl space-y-5 rounded-3xl border border-glass-border bg-slate-950/80 p-6 shadow-glass backdrop-blur-2xl sm:p-8"
+            className="my-8 w-full max-w-2xl space-y-5 rounded-3xl border border-glass-border bg-white p-6 shadow-glass sm:p-8"
           >
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-slate-900">
                 {producto ? "Editar producto" : "Nuevo producto"}
               </h2>
               <button
                 type="button"
                 onClick={onCerrar}
                 aria-label="Cerrar"
-                className="grid h-9 w-9 place-items-center rounded-full border border-glass-border bg-white/5 text-slate-300 transition hover:bg-white/15 hover:text-white"
+                className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
               >
                 <IconoCerrar className="h-4 w-4" />
               </button>
@@ -210,7 +210,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
             />
 
             {/* Precios y rentabilidad en vivo */}
-            <div className="space-y-3 rounded-2xl border border-glass-border bg-white/5 p-4">
+            <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="grid gap-4 sm:grid-cols-3">
                 <Campo
                   etiqueta="Precio costo (USD) *"
@@ -238,7 +238,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                   onChange={(e) => actualizar("precioVentaDivisas", e.target.value)}
                 />
               </div>
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-400">
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-slate-500">
                 <span>Margen base: {margenBase ?? "—"}</span>
                 <span>Margen divisas: {margenDivisas ?? "—"}</span>
               </div>
@@ -258,22 +258,22 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                   type="checkbox"
                   checked={borrador.activo}
                   onChange={(e) => actualizar("activo", e.target.checked)}
-                  className="h-5 w-5 rounded-md border-glass-border bg-white/10 accent-violet-500"
+                  className="h-5 w-5 rounded-md border-slate-300 accent-indigo-600"
                 />
-                <span className="text-sm text-slate-300">Visible en la tienda</span>
+                <span className="text-sm text-slate-600">Visible en la tienda</span>
               </label>
             </div>
 
             {/* Imágenes (Cloudinary) */}
             <div className="space-y-3">
-              <span className="text-xs font-medium uppercase tracking-wider text-slate-300">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-600">
                 Imágenes del producto
               </span>
               <div className="flex flex-wrap gap-3">
                 {borrador.imagenes.map((url, i) => (
                   <div
                     key={`${url.slice(0, 40)}-${i}`}
-                    className="group relative h-20 w-20 overflow-hidden rounded-2xl border border-glass-border"
+                    className="group relative h-20 w-20 overflow-hidden rounded-2xl border border-slate-200"
                   >
                     <Image
                       src={url}
@@ -292,9 +292,9 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                         )
                       }
                       aria-label="Quitar imagen"
-                      className="absolute inset-0 grid place-items-center bg-slate-950/70 opacity-0 transition group-hover:opacity-100"
+                      className="absolute inset-0 grid place-items-center bg-slate-900/50 opacity-0 transition group-hover:opacity-100"
                     >
-                      <IconoBasura className="h-5 w-5 text-rose-300" />
+                      <IconoBasura className="h-5 w-5 text-white" />
                     </button>
                   </div>
                 ))}
@@ -302,7 +302,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
                   type="button"
                   disabled={subiendo}
                   onClick={() => inputArchivo.current?.click()}
-                  className="grid h-20 w-20 place-items-center rounded-2xl border border-dashed border-glass-border bg-white/5 text-slate-400 transition hover:border-violet-400/60 hover:text-violet-300 disabled:opacity-40"
+                  className="grid h-20 w-20 place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-slate-500 transition hover:border-indigo-400 hover:text-indigo-600 disabled:opacity-40"
                 >
                   <span className="flex flex-col items-center gap-1 text-[10px]">
                     <IconoSubir className="h-5 w-5" />
@@ -324,7 +324,7 @@ export function FormularioProducto({ abierto, producto, onCerrar }: Props) {
               <motion.p
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600"
               >
                 {error}
               </motion.p>

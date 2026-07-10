@@ -55,6 +55,8 @@ export function CartDrawer() {
         metodoPago: carrito.metodoPago,
         cliente,
       });
+    } catch {
+      // Aunque falle el registro, no bloqueamos el pedido por WhatsApp.
     } finally {
       setEnviando(false);
     }
@@ -78,21 +80,21 @@ export function CartDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={carrito.cerrar}
-            className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
           />
           <motion.aside
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", bounce: 0.1, duration: 0.5 }}
-            className="fixed right-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col border-l border-glass-border bg-slate-950/70 shadow-glass backdrop-blur-2xl"
+            className="fixed right-0 top-0 z-50 flex h-dvh w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-glass"
           >
-            <header className="flex items-center justify-between border-b border-glass-border p-5">
-              <h2 className="flex items-center gap-2 text-lg font-bold text-white">
-                <IconoBolsa className="h-5 w-5 text-violet-300" />
+            <header className="flex items-center justify-between border-b border-slate-200 p-5">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                <IconoBolsa className="h-5 w-5 text-indigo-500" />
                 Tu carrito
                 {carrito.totalItems > 0 && (
-                  <span className="text-sm font-normal text-slate-400">
+                  <span className="text-sm font-normal text-slate-500">
                     ({carrito.totalItems} {carrito.totalItems === 1 ? "ítem" : "ítems"})
                   </span>
                 )}
@@ -100,7 +102,7 @@ export function CartDrawer() {
               <button
                 onClick={carrito.cerrar}
                 aria-label="Cerrar carrito"
-                className="grid h-9 w-9 place-items-center rounded-full border border-glass-border bg-white/5 text-slate-300 transition hover:bg-white/15 hover:text-white"
+                className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
               >
                 <IconoCerrar className="h-4 w-4" />
               </button>
@@ -110,8 +112,8 @@ export function CartDrawer() {
               {carrito.items.length === 0 && (
                 <div className="grid h-full place-items-center text-center">
                   <div className="space-y-3">
-                    <IconoBolsa className="mx-auto h-12 w-12 text-slate-600" />
-                    <p className="text-sm text-slate-400">Tu carrito está vacío.</p>
+                    <IconoBolsa className="mx-auto h-12 w-12 text-slate-300" />
+                    <p className="text-sm text-slate-500">Tu carrito está vacío.</p>
                   </div>
                 </div>
               )}
@@ -126,9 +128,9 @@ export function CartDrawer() {
                       initial={{ opacity: 0, x: 40 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 40, height: 0, marginBottom: 0 }}
-                      className="flex gap-3 rounded-2xl border border-glass-border bg-white/5 p-3"
+                      className="flex gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3"
                     >
-                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-900/60">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                         {producto.imagenes[0] && (
                           <Image
                             src={producto.imagenes[0]}
@@ -141,25 +143,25 @@ export function CartDrawer() {
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-white">
+                        <p className="truncate text-sm font-semibold text-slate-900">
                           {producto.nombre}
                         </p>
-                        <p className="text-xs text-slate-400">{formatoMoneda(unitario)} c/u</p>
+                        <p className="text-xs text-slate-500">{formatoMoneda(unitario)} c/u</p>
                         <div className="mt-2 flex items-center gap-2">
                           <button
                             onClick={() => carrito.cambiarCantidad(producto.id, cantidad - 1)}
                             aria-label="Restar unidad"
-                            className="grid h-7 w-7 place-items-center rounded-lg border border-glass-border bg-white/5 text-slate-300 hover:bg-white/15"
+                            className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
                           >
                             <IconoMenos className="h-3.5 w-3.5" />
                           </button>
-                          <span className="w-6 text-center text-sm font-semibold text-white">
+                          <span className="w-6 text-center text-sm font-semibold text-slate-900">
                             {cantidad}
                           </span>
                           <button
                             onClick={() => carrito.cambiarCantidad(producto.id, cantidad + 1)}
                             aria-label="Sumar unidad"
-                            className="grid h-7 w-7 place-items-center rounded-lg border border-glass-border bg-white/5 text-slate-300 hover:bg-white/15 disabled:opacity-30"
+                            className="grid h-7 w-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-30"
                             disabled={cantidad >= producto.stock}
                           >
                             <IconoMas className="h-3.5 w-3.5" />
@@ -167,13 +169,13 @@ export function CartDrawer() {
                           <button
                             onClick={() => carrito.quitar(producto.id)}
                             aria-label="Quitar del carrito"
-                            className="ml-auto grid h-7 w-7 place-items-center rounded-lg text-rose-300/80 hover:bg-rose-500/15 hover:text-rose-300"
+                            className="ml-auto grid h-7 w-7 place-items-center rounded-lg text-rose-500 hover:bg-rose-50"
                           >
                             <IconoBasura className="h-3.5 w-3.5" />
                           </button>
                         </div>
                       </div>
-                      <p className="shrink-0 text-sm font-bold text-white">
+                      <p className="shrink-0 text-sm font-bold text-slate-900">
                         {formatoMoneda(unitario * cantidad)}
                       </p>
                     </motion.div>
@@ -183,7 +185,7 @@ export function CartDrawer() {
             </div>
 
             {carrito.items.length > 0 && (
-              <footer className="space-y-4 border-t border-glass-border p-5">
+              <footer className="space-y-4 border-t border-slate-200 p-5">
                 {/* Método de pago */}
                 <div className="grid grid-cols-2 gap-2">
                   {opcionesPago.map(({ valor, etiqueta, Icono }) => (
@@ -192,8 +194,8 @@ export function CartDrawer() {
                       onClick={() => carrito.setMetodoPago(valor)}
                       className={`relative flex items-center justify-center gap-2 rounded-2xl border px-3 py-2.5 text-xs font-medium transition-colors ${
                         carrito.metodoPago === valor
-                          ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
-                          : "border-glass-border bg-white/5 text-slate-400 hover:text-slate-200"
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-500 hover:text-slate-900"
                       }`}
                     >
                       <Icono className="h-4 w-4" />
@@ -202,7 +204,7 @@ export function CartDrawer() {
                   ))}
                 </div>
                 {carrito.metodoPago === "divisas" && (
-                  <p className="text-[11px] leading-relaxed text-emerald-300/80">
+                  <p className="text-[11px] leading-relaxed text-emerald-600">
                     Precio promocional aplicado por pago en divisas en efectivo.
                   </p>
                 )}
@@ -222,12 +224,12 @@ export function CartDrawer() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-slate-300">Total</span>
+                  <span className="text-sm text-slate-600">Total</span>
                   <motion.span
                     key={`${carrito.total}-${carrito.metodoPago}`}
                     initial={{ scale: 0.9, opacity: 0.6 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    className="text-2xl font-bold text-white"
+                    className="text-2xl font-bold text-slate-900"
                   >
                     {formatoMoneda(carrito.total)}
                   </motion.span>

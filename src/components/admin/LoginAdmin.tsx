@@ -2,7 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
-import { IconoCandado, IconoLogo } from "@/components/icons";
+import { IconoCandado } from "@/components/icons";
+import { Logo } from "@/components/Logo";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -38,12 +39,12 @@ export function LoginAdmin({ onExito }: { onExito: () => void }) {
         className="w-full max-w-sm"
       >
         <GlassCard className="space-y-6 p-8">
-          <div className="space-y-2 text-center">
-            <span className="mx-auto grid h-14 w-14 place-items-center rounded-3xl bg-gradient-to-br from-violet-500 to-cyan-400 shadow-glow">
-              <IconoLogo className="h-7 w-7 text-white" />
-            </span>
-            <h1 className="text-xl font-bold text-white">Panel Administrativo</h1>
-            <p className="text-xs text-slate-400">Acceso restringido — NovaStore</p>
+          <div className="flex flex-col items-center gap-3 text-center">
+            <Logo size="lg" />
+            <div>
+              <h1 className="text-lg font-bold text-slate-900">Panel Administrativo</h1>
+              <p className="text-xs text-slate-500">Acceso restringido</p>
+            </div>
           </div>
 
           <form onSubmit={ingresar} className="space-y-4">
@@ -67,7 +68,7 @@ export function LoginAdmin({ onExito }: { onExito: () => void }) {
               <motion.p
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300"
+                className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600"
               >
                 {error}
               </motion.p>

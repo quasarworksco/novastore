@@ -26,11 +26,11 @@ export function ProductCard({ producto, onVer }: Props) {
       exit={{ opacity: 0, y: -16, scale: 0.96 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
       whileHover={{ y: -6 }}
-      className="group flex flex-col overflow-hidden rounded-3xl border border-glass-border bg-glass shadow-glass backdrop-blur-xl"
+      className="group flex flex-col overflow-hidden rounded-3xl border border-glass-border bg-white shadow-soft transition-shadow hover:shadow-glass"
     >
       <button
         onClick={() => onVer(producto)}
-        className="relative aspect-square w-full overflow-hidden bg-slate-900/50"
+        className="relative aspect-square w-full overflow-hidden bg-slate-100"
         aria-label={`Ver ${producto.nombre}`}
       >
         {producto.imagenes[0] ? (
@@ -48,31 +48,31 @@ export function ProductCard({ producto, onVer }: Props) {
           </span>
         )}
         {producto.imagenes.length > 1 && (
-          <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-slate-950/60 px-2 py-1 text-[11px] text-slate-200 backdrop-blur-md">
+          <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-white/85 px-2 py-1 text-[11px] text-slate-600 shadow-soft backdrop-blur-md">
             <IconoImagen className="h-3.5 w-3.5" />
             {producto.imagenes.length}
           </span>
         )}
         {agotado && (
-          <span className="absolute inset-0 grid place-items-center bg-slate-950/60 backdrop-blur-sm">
+          <span className="absolute inset-0 grid place-items-center bg-white/60 backdrop-blur-sm">
             <Insignia tono="rojo">Agotado</Insignia>
           </span>
         )}
       </button>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-violet-300">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-indigo-500">
           {producto.categoria}
         </span>
-        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-white">
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">
           {producto.nombre}
         </h3>
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
           <div className="min-w-0">
-            <p className="text-lg font-bold text-white">{formatoMoneda(producto.precioVenta)}</p>
+            <p className="text-lg font-bold text-slate-900">{formatoMoneda(producto.precioVenta)}</p>
             {tienePromocion && (
-              <p className="flex items-center gap-1 text-xs font-medium text-emerald-300">
+              <p className="flex items-center gap-1 text-xs font-medium text-emerald-600">
                 <IconoBillete className="h-3.5 w-3.5 shrink-0" />
                 {formatoMoneda(producto.precioVentaDivisas)} en divisas
               </p>
@@ -83,7 +83,7 @@ export function ProductCard({ producto, onVer }: Props) {
             disabled={agotado}
             onClick={() => agregar(producto)}
             aria-label={`Agregar ${producto.nombre} al carrito`}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 text-white shadow-glow transition hover:brightness-110 disabled:opacity-30 disabled:shadow-none"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-glow transition hover:brightness-110 disabled:opacity-30 disabled:shadow-none"
           >
             <IconoMas className="h-5 w-5" />
           </motion.button>
