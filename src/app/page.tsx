@@ -55,12 +55,12 @@ function Tienda() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="relative mb-10 overflow-hidden rounded-3xl border border-glass-border bg-white/70 p-8 shadow-glass backdrop-blur-xl sm:p-14"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-indigo-100/70 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-fuchsia-100/60 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-100/70 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-sky-100/60 blur-3xl" />
 
           <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-indigo-500" />
+            <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
               Pedidos coordinados al instante por WhatsApp
             </span>
 

@@ -28,7 +28,7 @@ export function Logo({ size = "md", className = "", conMarca = true, style }: Pr
           height={t.mark}
           viewBox="0 0 24 24"
           fill="currentColor"
-          className="shrink-0 text-indigo-500"
+          className="shrink-0 text-blue-500"
           aria-hidden="true"
         >
           <path d="M12 2c.4 3.6 2.4 5.6 6 6-3.6.4-5.6 2.4-6 6-.4-3.6-2.4-5.6-6-6 3.6-.4 5.6-2.4 6-6z" />

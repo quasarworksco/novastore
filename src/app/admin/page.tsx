@@ -153,14 +153,14 @@ export default function PaginaAdmin() {
             key={id}
             onClick={() => setPestana(id)}
             className={`relative flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
-              pestana === id ? "text-indigo-700" : "text-slate-500 hover:text-slate-900"
+              pestana === id ? "text-blue-700" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             {pestana === id && (
               <motion.span
                 layoutId="pestana-admin"
                 transition={{ type: "spring", bounce: 0.25, duration: 0.55 }}
-                className="absolute inset-0 rounded-2xl border border-indigo-100 bg-indigo-50 shadow-soft"
+                className="absolute inset-0 rounded-2xl border border-blue-100 bg-blue-50 shadow-soft"
               />
             )}
             <Icono className="relative z-10 h-4 w-4" />

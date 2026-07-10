@@ -13,14 +13,14 @@ const config: Config = {
         },
         ink: "#0f172a",
         accent: {
-          DEFAULT: "#4f46e5",
-          soft: "#eef2ff",
+          DEFAULT: "#2563eb",
+          soft: "#eff6ff",
         },
       },
       boxShadow: {
         glass: "0 10px 34px rgba(15, 23, 42, 0.08)",
         soft: "0 2px 14px rgba(15, 23, 42, 0.06)",
-        glow: "0 12px 40px rgba(79, 70, 229, 0.20)",
+        glow: "0 12px 40px rgba(37, 99, 235, 0.20)",
       },
       animation: {
         "blob-slow": "blob 24s ease-in-out infinite",

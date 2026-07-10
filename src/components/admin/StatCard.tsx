@@ -7,7 +7,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 type Tono = "violeta" | "verde" | "cian" | "ambar" | "rojo";
 
 const tonos: Record<Tono, { icono: string; valor: string }> = {
-  violeta: { icono: "bg-indigo-50 text-indigo-600", valor: "text-slate-900" },
+  violeta: { icono: "bg-blue-50 text-blue-600", valor: "text-slate-900" },
   verde: { icono: "bg-emerald-50 text-emerald-600", valor: "text-emerald-600" },
   cian: { icono: "bg-sky-50 text-sky-600", valor: "text-slate-900" },
   ambar: { icono: "bg-amber-50 text-amber-600", valor: "text-amber-600" },

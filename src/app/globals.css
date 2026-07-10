@@ -13,9 +13,9 @@ html {
 body {
   @apply min-h-screen bg-white text-slate-900 antialiased;
   background-image:
-    radial-gradient(ellipse 70% 50% at 15% -10%, rgba(99, 102, 241, 0.07), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 15% -10%, rgba(59, 130, 246, 0.07), transparent 60%),
     radial-gradient(ellipse 60% 50% at 95% 5%, rgba(56, 189, 248, 0.06), transparent 60%),
-    radial-gradient(ellipse 80% 60% at 50% 115%, rgba(217, 70, 239, 0.05), transparent 65%);
+    radial-gradient(ellipse 80% 60% at 50% 115%, rgba(14, 165, 233, 0.05), transparent 65%);
   background-attachment: fixed;
 }
 
@@ -37,7 +37,7 @@ body {
 
 /* Acento de marca discreto para una palabra destacada */
 .texto-degradado {
-  @apply bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-500 bg-clip-text text-transparent;
+  @apply bg-gradient-to-r from-blue-600 via-sky-500 to-blue-500 bg-clip-text text-transparent;
 }
 
 /* Oculta scrollbar en carruseles horizontales */

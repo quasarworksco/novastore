@@ -61,7 +61,7 @@ export function ProductCard({ producto, onVer }: Props) {
       </button>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-indigo-500">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-blue-500">
           {producto.categoria}
         </span>
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">
@@ -83,7 +83,7 @@ export function ProductCard({ producto, onVer }: Props) {
             disabled={agotado}
             onClick={() => agregar(producto)}
             aria-label={`Agregar ${producto.nombre} al carrito`}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-glow transition hover:brightness-110 disabled:opacity-30 disabled:shadow-none"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-glow transition hover:brightness-110 disabled:opacity-30 disabled:shadow-none"
           >
             <IconoMas className="h-5 w-5" />
           </motion.button>

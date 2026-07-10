@@ -91,7 +91,7 @@ export function CartDrawer() {
           >
             <header className="flex items-center justify-between border-b border-slate-200 p-5">
               <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                <IconoBolsa className="h-5 w-5 text-indigo-500" />
+                <IconoBolsa className="h-5 w-5 text-blue-500" />
                 Tu carrito
                 {carrito.totalItems > 0 && (
                   <span className="text-sm font-normal text-slate-500">
