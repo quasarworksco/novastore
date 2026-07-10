@@ -1,3 +1,5 @@
+// Formato CommonJS (next.config.js) requerido: actions/configure-pages
+// inyecta aquí el basePath correcto al desplegar en GitHub Pages.
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Exportación estática para GitHub Pages (carpeta ./out con index.html).
@@ -13,4 +15,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

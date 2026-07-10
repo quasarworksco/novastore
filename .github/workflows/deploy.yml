@@ -31,10 +31,12 @@ jobs:
         run: npm ci
 
       # Ajusta basePath automáticamente según la URL de Pages
-      # (subruta /novastore en github.io, raíz con dominio propio).
+      # (subruta /novastore en github.io, raíz con dominio propio) y
+      # activa el modo "GitHub Actions" de Pages si no está configurado.
       - uses: actions/configure-pages@v4
         with:
           static_site_generator: next
+          enablement: true
 
       - name: Compilar exportación estática
         run: npx next build
