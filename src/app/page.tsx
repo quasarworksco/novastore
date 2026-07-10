@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { IconoFlechaDer, IconoFlechaIzq } from "@/components/icons";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { CartDrawer } from "@/components/store/CartDrawer";
@@ -38,10 +39,14 @@ function Tienda() {
   );
   const categorias = useMemo(() => ["Todos", ...soloCategorias], [soloCategorias]);
 
-  const destacados = useMemo(
-    () => productos.filter((p) => p.destacado).slice(0, 4),
-    [productos]
-  );
+  const destacados = useMemo(() => productos.filter((p) => p.destacado), [productos]);
+
+  // Carrusel horizontal de destacados
+  const carruselRef = useRef<HTMLDivElement>(null);
+  const desplazarCarrusel = (direccion: number) => {
+    const el = carruselRef.current;
+    if (el) el.scrollBy({ left: direccion * el.clientWidth * 0.8, behavior: "smooth" });
+  };
 
   const visibles = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -67,9 +72,10 @@ function Tienda() {
           className="relative mb-10 overflow-hidden rounded-3xl border border-glass-border bg-gradient-to-br from-blue-50 via-white to-sky-50 p-8 shadow-glass sm:p-14"
         >
           {/* Fondo animado más llamativo */}
-          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl animate-blob-slow" />
-          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-sky-300/30 blur-3xl animate-blob-slower" />
-          <div className="pointer-events-none absolute right-1/4 top-1/2 h-48 w-48 rounded-full bg-cyan-200/30 blur-3xl animate-float" />
+          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-blue-500/30 blur-3xl animate-blob-slow" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-sky-500/25 blur-3xl animate-blob-slower" />
+          <div className="pointer-events-none absolute right-1/4 top-1/2 h-48 w-48 rounded-full bg-blue-600/20 blur-3xl animate-float" />
+          <div className="pointer-events-none absolute -left-16 top-1/4 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl animate-blob-slower" />
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.4]"
             style={{
@@ -111,15 +117,15 @@ function Tienda() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="relative mb-10 overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600/[0.06] via-sky-100/60 to-blue-50 p-5 shadow-glass sm:p-7"
+            className="relative mb-10 overflow-hidden rounded-3xl border border-blue-200/60 bg-gradient-to-br from-blue-600/15 via-sky-400/10 to-blue-50 p-5 shadow-glass sm:p-7"
           >
-            <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-300/25 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-sky-300/25 blur-3xl" />
+            <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl animate-blob-slow" />
+            <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-sky-500/25 blur-3xl animate-blob-slower" />
             <div
               className="pointer-events-none absolute inset-0 opacity-50"
               style={{
                 backgroundImage:
-                  "radial-gradient(circle at 1px 1px, rgba(37,99,235,0.14) 1px, transparent 0)",
+                  "radial-gradient(circle at 1px 1px, rgba(29,78,216,0.18) 1px, transparent 0)",
                 backgroundSize: "22px 22px",
               }}
             />
@@ -139,10 +145,33 @@ function Tienda() {
                     <p className="text-xs text-slate-500">Nuestra selección para ti</p>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => desplazarCarrusel(-1)}
+                    aria-label="Anteriores"
+                    className="grid h-9 w-9 place-items-center rounded-full border border-blue-200 bg-white/90 text-blue-700 shadow-soft transition hover:bg-blue-50"
+                  >
+                    <IconoFlechaIzq className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => desplazarCarrusel(1)}
+                    aria-label="Siguientes"
+                    className="grid h-9 w-9 place-items-center rounded-full border border-blue-200 bg-white/90 text-blue-700 shadow-soft transition hover:bg-blue-50"
+                  >
+                    <IconoFlechaDer className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+
+              {/* Carrusel horizontal con snap */}
+              <div
+                ref={carruselRef}
+                className="scrollbar-none -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-1"
+              >
                 {destacados.map((producto) => (
-                  <ProductCard key={producto.id} producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
+                  <div key={producto.id} className="w-[46%] shrink-0 snap-start sm:w-56 lg:w-60">
+                    <ProductCard producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
+                  </div>
                 ))}
               </div>
             </div>
