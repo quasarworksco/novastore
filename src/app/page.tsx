@@ -86,9 +86,43 @@ function Tienda() {
           />
 
           <div className="relative">
-            <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
-              Todo lo que te gusta, <br className="hidden sm:block" />
-              en <span className="texto-degradado">un solo lugar</span>.
+            <h1 className="max-w-3xl text-[2.7rem] font-extrabold leading-[1.02] tracking-tight text-slate-900 sm:text-6xl">
+              {["Todo", "lo", "que", "te", "gusta,"].map((palabra, i) => (
+                <motion.span
+                  key={palabra}
+                  initial={{ opacity: 0, y: 22 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + i * 0.08, duration: 0.5, ease: "easeOut" }}
+                  className="mr-[0.26em] inline-block"
+                >
+                  {palabra}
+                </motion.span>
+              ))}
+              <br />
+              <motion.span
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
+                className="mr-[0.26em] inline-block"
+              >
+                en
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0, y: 22, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.72, duration: 0.55, ease: "easeOut" }}
+                className="texto-degradado-animado inline-block"
+              >
+                un solo lugar
+              </motion.span>
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.1, duration: 0.4 }}
+                className="inline-block text-blue-600"
+              >
+                .
+              </motion.span>
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600">
               Perfumes, tecnología, accesorios y más, cuidadosamente seleccionados. Elige tus
@@ -163,13 +197,16 @@ function Tienda() {
                 </div>
               </div>
 
-              {/* Carrusel horizontal con snap */}
+              {/* Carrusel horizontal: en móvil una tarjeta por deslizamiento */}
               <div
                 ref={carruselRef}
-                className="scrollbar-none -mx-1 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-1 pb-1"
+                className="scrollbar-none -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-5 pb-3 pt-2 sm:-mx-7 sm:px-7"
               >
                 {destacados.map((producto) => (
-                  <div key={producto.id} className="w-[46%] shrink-0 snap-start sm:w-56 lg:w-60">
+                  <div
+                    key={producto.id}
+                    className="w-[82%] shrink-0 snap-center sm:w-56 sm:snap-start lg:w-60"
+                  >
                     <ProductCard producto={producto} onVer={setDetalle} tasaBs={tasaBs} />
                   </div>
                 ))}
