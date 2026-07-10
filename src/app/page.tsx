@@ -10,7 +10,7 @@ import { CategoryTabs } from "@/components/store/CategoryTabs";
 import { ProductCard } from "@/components/store/ProductCard";
 import { ProductModal } from "@/components/store/ProductModal";
 import { CarritoProvider } from "@/lib/cart-context";
-import { suscribirConfig, suscribirProductos } from "@/lib/store";
+import { suscribirConfig, suscribirErrorDatos, suscribirProductos } from "@/lib/store";
 import type { Producto } from "@/lib/types";
 
 function Tienda() {
@@ -20,6 +20,7 @@ function Tienda() {
   const [busqueda, setBusqueda] = useState("");
   const [detalle, setDetalle] = useState<Producto | null>(null);
   const [tasaBs, setTasaBs] = useState(0);
+  const [errorDatos, setErrorDatos] = useState(false);
 
   useEffect(() => {
     const cancelar = suscribirProductos((datos) => {
@@ -27,9 +28,11 @@ function Tienda() {
       setCargando(false);
     });
     const cancelarConfig = suscribirConfig((c) => setTasaBs(c.tasaBs));
+    const cancelarError = suscribirErrorDatos(setErrorDatos);
     return () => {
       cancelar();
       cancelarConfig();
+      cancelarError();
     };
   }, []);
 
@@ -64,6 +67,18 @@ function Tienda() {
       <Navbar busqueda={busqueda} onBuscar={setBusqueda} />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 pt-8">
+        {/* Aviso de conexión: evita confundir un fallo de red con datos borrados */}
+        {errorDatos && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          >
+            No pudimos actualizar el catálogo en este momento (conexión o límite temporal del
+            servidor). Tus datos están a salvo; estamos mostrando la última copia disponible.
+          </motion.div>
+        )}
+
         {/* Hero */}
         <motion.section
           initial={{ opacity: 0, y: 24 }}

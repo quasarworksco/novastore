@@ -148,6 +148,9 @@ async function mensajeError(resp: Response, accion: string): Promise<string> {
   try {
     const cuerpo = (await resp.json()) as { error?: { message?: string } };
     const detalle = cuerpo.error?.message ?? "";
+    if (resp.status === 429 || /quota/i.test(detalle)) {
+      return "Se alcanzó el límite diario gratuito de Firebase. Los datos están a salvo; vuelve a intentarlo más tarde o activa el plan Blaze en la consola de Firebase.";
+    }
     if (resp.status === 403 || /permission/i.test(detalle)) {
       return "Firestore denegó la operación. Publica las reglas de firestore.rules en la consola de Firebase.";
     }
