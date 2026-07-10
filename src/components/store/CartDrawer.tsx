@@ -54,6 +54,11 @@ export function CartDrawer() {
         total: carrito.total,
         metodoPago: carrito.metodoPago,
         cliente,
+        estado: "pendiente",
+        origen: "tienda",
+        fiado: false,
+        pagado: true,
+        fechaCobro: null,
       });
     } catch {
       // Aunque falle el registro, no bloqueamos el pedido por WhatsApp.

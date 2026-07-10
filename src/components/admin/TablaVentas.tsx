@@ -52,7 +52,13 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
                   </td>
                   <td className="px-3 py-3">
                     <p className="font-medium text-slate-900">{v.cliente.nombre || "—"}</p>
-                    <p className="text-xs text-slate-500">{v.cliente.telefono}</p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                      {v.cliente.telefono && (
+                        <span className="text-xs text-slate-500">{v.cliente.telefono}</span>
+                      )}
+                      {v.origen === "manual" && <Insignia tono="neutro">Manual</Insignia>}
+                      {v.fiado && !v.pagado && <Insignia tono="ambar">Debe</Insignia>}
+                    </div>
                   </td>
                   <td className="max-w-[260px] px-3 py-3 text-xs text-slate-600">
                     {v.items.map((i) => `${i.cantidad}× ${i.nombre}`).join(", ")}

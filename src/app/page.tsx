@@ -27,8 +27,14 @@ function Tienda() {
     return cancelar;
   }, []);
 
-  const categorias = useMemo(
-    () => ["Todos", ...Array.from(new Set(productos.map((p) => p.categoria))).sort()],
+  const soloCategorias = useMemo(
+    () => Array.from(new Set(productos.map((p) => p.categoria).filter(Boolean))).sort(),
+    [productos]
+  );
+  const categorias = useMemo(() => ["Todos", ...soloCategorias], [soloCategorias]);
+
+  const destacados = useMemo(
+    () => productos.filter((p) => p.destacado).slice(0, 4),
     [productos]
   );
 
@@ -53,38 +59,65 @@ function Tienda() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="relative mb-10 overflow-hidden rounded-3xl border border-glass-border bg-white/70 p-8 shadow-glass backdrop-blur-xl sm:p-14"
+          className="relative mb-10 overflow-hidden rounded-3xl border border-glass-border bg-gradient-to-br from-blue-50 via-white to-sky-50 p-8 shadow-glass sm:p-14"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-blue-100/70 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 left-1/4 h-56 w-56 rounded-full bg-sky-100/60 blur-3xl" />
+          {/* Fondo animado más llamativo */}
+          <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-blue-300/30 blur-3xl animate-blob-slow" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-sky-300/30 blur-3xl animate-blob-slower" />
+          <div className="pointer-events-none absolute right-1/4 top-1/2 h-48 w-48 rounded-full bg-cyan-200/30 blur-3xl animate-float" />
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.4]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, rgba(37,99,235,0.12) 1px, transparent 0)",
+              backgroundSize: "26px 26px",
+            }}
+          />
 
           <div className="relative">
-            <span className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-blue-500" />
-              Pedidos coordinados al instante por WhatsApp
-            </span>
-
-            <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
+            <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
               Todo lo que te gusta, <br className="hidden sm:block" />
               en <span className="texto-degradado">un solo lugar</span>.
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600">
-              Perfumes, tecnología, accesorios y juguetes cuidadosamente seleccionados. Elige tus
-              favoritos y recíbelos coordinando tu entrega en segundos.
+              Perfumes, tecnología, accesorios y más, cuidadosamente seleccionados. Elige tus
+              favoritos y coordina tu entrega en segundos.
             </p>
 
-            <div className="mt-7 flex flex-wrap gap-2">
-              {["Perfumes", "Electrónica", "Accesorios", "Juguetes"].map((c) => (
-                <span
-                  key={c}
-                  className="rounded-full border border-slate-200 bg-white/80 px-3.5 py-1.5 text-xs font-medium text-slate-600"
-                >
-                  {c}
-                </span>
-              ))}
-            </div>
+            {soloCategorias.length > 0 && (
+              <div className="mt-7 flex flex-wrap gap-2">
+                {soloCategorias.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCategoria(c)}
+                    className="rounded-full border border-blue-100 bg-white/80 px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-soft transition hover:border-blue-300 hover:text-blue-700"
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </motion.section>
+
+        {/* Productos destacados */}
+        {!cargando && destacados.length > 0 && categoria === "Todos" && busqueda.trim() === "" && (
+          <section className="mb-10">
+            <div className="mb-4 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5 text-blue-500">
+                <path d="M12 2c.4 3.6 2.4 5.6 6 6-3.6.4-5.6 2.4-6 6-.4-3.6-2.4-5.6-6-6 3.6-.4 5.6-2.4 6-6z" />
+              </svg>
+              <h2 className="text-lg font-bold tracking-tight text-slate-900">
+                Productos destacados
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {destacados.map((producto) => (
+                <ProductCard key={producto.id} producto={producto} onVer={setDetalle} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Categorías */}
         <div className="sticky top-[84px] z-30 -mx-4 mb-6 px-4 py-2">

@@ -4,16 +4,21 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { FormularioProducto } from "@/components/admin/FormularioProducto";
+import { FormularioVentaManual } from "@/components/admin/FormularioVentaManual";
+import { CuentasPorCobrar } from "@/components/admin/CuentasPorCobrar";
 import { ResumenFinanciero } from "@/components/admin/ResumenFinanciero";
 import { StatCard } from "@/components/admin/StatCard";
 import { TablaClientes } from "@/components/admin/TablaClientes";
 import { TablaProductos } from "@/components/admin/TablaProductos";
 import { TablaVentas } from "@/components/admin/TablaVentas";
 import {
+  IconoBillete,
   IconoCaja,
+  IconoCerrar,
   IconoDolar,
   IconoGrafica,
   IconoMas,
+  IconoMenu,
   IconoOjo,
   IconoSalir,
   IconoUsuarios,
@@ -35,12 +40,13 @@ import {
 import { productosSemilla } from "@/data/seed";
 import type { Cliente, Producto, Venta } from "@/lib/types";
 
-type Pestana = "resumen" | "productos" | "ventas" | "clientes";
+type Pestana = "resumen" | "productos" | "ventas" | "cobrar" | "clientes";
 
 const pestanas: { id: Pestana; etiqueta: string; Icono: typeof IconoGrafica }[] = [
   { id: "resumen", etiqueta: "Resumen", Icono: IconoGrafica },
   { id: "productos", etiqueta: "Productos", Icono: IconoCaja },
   { id: "ventas", etiqueta: "Ventas", Icono: IconoDolar },
+  { id: "cobrar", etiqueta: "Por cobrar", Icono: IconoBillete },
   { id: "clientes", etiqueta: "Clientes", Icono: IconoUsuarios },
 ];
 
@@ -51,8 +57,10 @@ export default function PaginaAdmin() {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [pestana, setPestana] = useState<Pestana>("resumen");
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [formAbierto, setFormAbierto] = useState(false);
   const [productoEnEdicion, setProductoEnEdicion] = useState<Producto | null>(null);
+  const [ventaManualAbierta, setVentaManualAbierta] = useState(false);
   const [sembrando, setSembrando] = useState(false);
 
   useEffect(() => {
@@ -70,7 +78,20 @@ export default function PaginaAdmin() {
   }, [autenticado]);
 
   const ingresos = useMemo(
-    () => ventas.filter((v) => v.estado !== "cancelada").reduce((acc, v) => acc + v.total, 0),
+    () =>
+      ventas
+        .filter((v) => v.estado !== "cancelada" && v.pagado !== false)
+        .reduce((acc, v) => acc + v.total, 0),
+    [ventas]
+  );
+
+  const categorias = useMemo(
+    () => Array.from(new Set(productos.map((p) => p.categoria).filter(Boolean))).sort(),
+    [productos]
+  );
+
+  const porCobrar = useMemo(
+    () => ventas.filter((v) => v.fiado && !v.pagado && v.estado !== "cancelada"),
     [ventas]
   );
 
@@ -82,6 +103,11 @@ export default function PaginaAdmin() {
   function abrirEditar(p: Producto) {
     setProductoEnEdicion(p);
     setFormAbierto(true);
+  }
+
+  function elegirPestana(p: Pestana) {
+    setPestana(p);
+    setMenuAbierto(false);
   }
 
   async function confirmarEliminar(p: Producto) {
@@ -117,11 +143,21 @@ export default function PaginaAdmin() {
   if (autenticado === null) return null;
   if (!autenticado) return <LoginAdmin onExito={() => setAutenticado(true)} />;
 
+  const pestanaActual = pestanas.find((p) => p.id === pestana);
+
   return (
     <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-16">
       {/* Cabecera */}
       <header className="sticky top-0 z-40 -mx-4 mb-8 px-4 pt-4">
-        <div className="flex items-center gap-3 rounded-3xl border border-glass-border bg-white/80 px-5 py-3 shadow-soft backdrop-blur-2xl">
+        <div className="flex items-center gap-3 rounded-3xl border border-glass-border bg-white/80 px-4 py-3 shadow-soft backdrop-blur-2xl sm:px-5">
+          {/* Botón menú (móvil) */}
+          <button
+            onClick={() => setMenuAbierto(true)}
+            aria-label="Abrir menú"
+            className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 sm:hidden"
+          >
+            <IconoMenu className="h-5 w-5" />
+          </button>
           <Logo size="md" conMarca />
           <div className="hidden min-w-0 sm:block">
             <span className="text-xs font-medium text-slate-400">/ Panel</span>
@@ -146,8 +182,8 @@ export default function PaginaAdmin() {
         </div>
       </header>
 
-      {/* Pestañas */}
-      <nav className="mb-8 flex gap-1 overflow-x-auto rounded-3xl border border-glass-border bg-white/70 p-1.5 shadow-soft backdrop-blur-xl">
+      {/* Pestañas en línea (escritorio) */}
+      <nav className="mb-8 hidden gap-1 rounded-3xl border border-glass-border bg-white/70 p-1.5 shadow-soft backdrop-blur-xl sm:flex">
         {pestanas.map(({ id, etiqueta, Icono }) => (
           <button
             key={id}
@@ -165,9 +201,72 @@ export default function PaginaAdmin() {
             )}
             <Icono className="relative z-10 h-4 w-4" />
             <span className="relative z-10">{etiqueta}</span>
+            {id === "cobrar" && porCobrar.length > 0 && (
+              <span className="relative z-10 grid h-4 min-w-4 place-items-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">
+                {porCobrar.length}
+              </span>
+            )}
           </button>
         ))}
       </nav>
+
+      {/* Sección actual (móvil) */}
+      <div className="mb-6 flex items-center gap-2 sm:hidden">
+        {pestanaActual && <pestanaActual.Icono className="h-5 w-5 text-blue-600" />}
+        <h1 className="text-lg font-bold text-slate-900">{pestanaActual?.etiqueta}</h1>
+      </div>
+
+      {/* Drawer lateral (móvil) */}
+      <AnimatePresence>
+        {menuAbierto && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMenuAbierto(false)}
+              className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm sm:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
+              className="fixed left-0 top-0 z-50 flex h-dvh w-72 max-w-[80vw] flex-col gap-2 border-r border-slate-200 bg-white p-4 shadow-glass sm:hidden"
+            >
+              <div className="mb-2 flex items-center justify-between">
+                <Logo size="md" />
+                <button
+                  onClick={() => setMenuAbierto(false)}
+                  aria-label="Cerrar menú"
+                  className="grid h-9 w-9 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                >
+                  <IconoCerrar className="h-4 w-4" />
+                </button>
+              </div>
+              {pestanas.map(({ id, etiqueta, Icono }) => (
+                <button
+                  key={id}
+                  onClick={() => elegirPestana(id)}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors ${
+                    pestana === id
+                      ? "border border-blue-100 bg-blue-50 text-blue-700"
+                      : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Icono className="h-5 w-5" />
+                  {etiqueta}
+                  {id === "cobrar" && porCobrar.length > 0 && (
+                    <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-amber-500 px-1 text-[11px] font-bold text-white">
+                      {porCobrar.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -182,9 +281,9 @@ export default function PaginaAdmin() {
             <>
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
-                  etiqueta="Ingresos por ventas"
+                  etiqueta="Ingresos cobrados"
                   valor={formatoMoneda(ingresos)}
-                  detalle={`${ventas.length} pedidos registrados`}
+                  detalle={`${ventas.length} ventas registradas`}
                   icono={IconoDolar}
                   tono="verde"
                 />
@@ -195,27 +294,33 @@ export default function PaginaAdmin() {
                   icono={IconoCaja}
                 />
                 <StatCard
-                  etiqueta="Clientes"
-                  valor={String(clientes.length)}
-                  detalle="Registrados desde pedidos"
-                  icono={IconoUsuarios}
-                  tono="cian"
+                  etiqueta="Por cobrar"
+                  valor={formatoMoneda(porCobrar.reduce((a, v) => a + v.total, 0))}
+                  detalle={`${porCobrar.length} deudas pendientes`}
+                  icono={IconoBillete}
+                  tono="ambar"
                 />
                 <StatCard
-                  etiqueta="Pedidos pendientes"
-                  valor={String(ventas.filter((v) => v.estado === "pendiente").length)}
-                  detalle="Por confirmar en WhatsApp"
-                  icono={IconoGrafica}
-                  tono="ambar"
+                  etiqueta="Clientes"
+                  valor={String(clientes.length)}
+                  detalle="Registrados desde ventas"
+                  icono={IconoUsuarios}
+                  tono="cian"
                 />
               </section>
 
               <ResumenFinanciero productos={productos} />
 
               <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
-                  Últimas ventas
-                </h2>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
+                    Últimas ventas
+                  </h2>
+                  <Boton onClick={() => setVentaManualAbierta(true)}>
+                    <IconoMas className="h-4 w-4" />
+                    Venta manual
+                  </Boton>
+                </div>
                 <TablaVentas ventas={ventas.slice(0, 5)} />
               </section>
             </>
@@ -250,10 +355,31 @@ export default function PaginaAdmin() {
 
           {pestana === "ventas" && (
             <>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
-                Registro de ventas ({ventas.length})
-              </h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
+                  Registro de ventas ({ventas.length})
+                </h2>
+                <Boton onClick={() => setVentaManualAbierta(true)}>
+                  <IconoMas className="h-4 w-4" />
+                  Venta manual
+                </Boton>
+              </div>
               <TablaVentas ventas={ventas} />
+            </>
+          )}
+
+          {pestana === "cobrar" && (
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
+                  Cuentas por cobrar
+                </h2>
+                <Boton onClick={() => setVentaManualAbierta(true)}>
+                  <IconoMas className="h-4 w-4" />
+                  Venta manual
+                </Boton>
+              </div>
+              <CuentasPorCobrar ventas={ventas} />
             </>
           )}
 
@@ -271,7 +397,13 @@ export default function PaginaAdmin() {
       <FormularioProducto
         abierto={formAbierto}
         producto={productoEnEdicion}
+        categorias={categorias}
         onCerrar={() => setFormAbierto(false)}
+      />
+      <FormularioVentaManual
+        abierto={ventaManualAbierta}
+        productos={productos}
+        onCerrar={() => setVentaManualAbierta(false)}
       />
     </div>
   );

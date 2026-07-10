@@ -72,10 +72,11 @@ export function ProductCard({ producto, onVer }: Props) {
           <div className="min-w-0">
             <p className="text-lg font-bold text-slate-900">{formatoMoneda(producto.precioVenta)}</p>
             {tienePromocion && (
-              <p className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+              <span className="mt-1 inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-700">
                 <IconoBillete className="h-3.5 w-3.5 shrink-0" />
-                {formatoMoneda(producto.precioVentaDivisas)} en divisas
-              </p>
+                {formatoMoneda(producto.precioVentaDivisas)}
+                <span className="font-medium text-emerald-600">divisas</span>
+              </span>
             )}
           </div>
           <motion.button

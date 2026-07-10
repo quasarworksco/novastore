@@ -249,3 +249,9 @@ export const IconoOjo = (p: IconProps) => (
     <circle cx={12} cy={12} r={2.5} />
   </Base>
 );
+
+export const IconoMenu = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Base>
+);
