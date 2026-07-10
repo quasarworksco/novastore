@@ -62,39 +62,49 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
         )}
       </button>
 
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-blue-500">
+      {/* Botón + flotante sobre la imagen: nunca tapa el texto del producto */}
+      <div className="relative">
+        <motion.button
+          whileTap={{ scale: 0.88 }}
+          disabled={agotado}
+          onClick={() => agregar(producto)}
+          aria-label={`Agregar ${producto.nombre} al carrito`}
+          className="absolute -top-5 right-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-glow transition hover:brightness-110 disabled:opacity-30 disabled:shadow-none"
+        >
+          <IconoMas className="h-5 w-5" />
+        </motion.button>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-1.5 p-4">
+        <span className="pr-12 text-[11px] font-medium uppercase tracking-wider text-blue-500">
           {producto.categoria}
         </span>
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">
           {producto.nombre}
         </h3>
 
-        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
-          <div className="min-w-0">
-            <p className="text-lg font-bold text-slate-900">{formatoMoneda(producto.precioVenta)}</p>
+        <div className="mt-auto space-y-1.5 pt-2">
+          <div>
+            <p className="text-lg font-bold leading-tight text-slate-900">
+              {formatoMoneda(producto.precioVenta)}
+            </p>
             {tasaBs > 0 && (
               <p className="text-[11px] leading-tight text-slate-400">
                 {formatoBs(producto.precioVenta, tasaBs)}
               </p>
             )}
-            {tienePromocion && (
-              <span className="mt-1 inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-bold text-emerald-700">
-                <IconoBillete className="h-3.5 w-3.5 shrink-0" />
-                {formatoMoneda(producto.precioVentaDivisas)}
-                <span className="font-medium text-emerald-600">divisas</span>
-              </span>
-            )}
           </div>
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            disabled={agotado}
-            onClick={() => agregar(producto)}
-            aria-label={`Agregar ${producto.nombre} al carrito`}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-glow transition hover:brightness-110 disabled:opacity-30 disabled:shadow-none"
-          >
-            <IconoMas className="h-5 w-5" />
-          </motion.button>
+          {tienePromocion && (
+            <div className="flex flex-col rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                En divisas
+              </span>
+              <span className="flex items-center gap-1.5 text-base font-bold leading-tight text-emerald-700">
+                <IconoBillete className="h-4 w-4 shrink-0" />
+                {formatoMoneda(producto.precioVentaDivisas)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </motion.article>
