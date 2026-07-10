@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import { IconoCandado, IconoLogo } from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { GlassCard } from "@/components/ui/GlassCard";
+import { iniciarSesion } from "@/lib/admin-auth";
 
-export function LoginAdmin() {
-  const router = useRouter();
+export function LoginAdmin({ onExito }: { onExito: () => void }) {
   const [usuario, setUsuario] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,18 +19,11 @@ export function LoginAdmin() {
     setError("");
     setCargando(true);
     try {
-      const respuesta = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usuario, password }),
-      });
-      if (respuesta.ok) {
-        router.refresh();
+      if (await iniciarSesion(usuario, password)) {
+        onExito();
       } else {
         setError("Usuario o contraseña incorrectos.");
       }
-    } catch {
-      setError("No se pudo conectar. Intenta de nuevo.");
     } finally {
       setCargando(false);
     }

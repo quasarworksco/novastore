@@ -21,6 +21,8 @@ import {
 } from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { Insignia } from "@/components/ui/Insignia";
+import { LoginAdmin } from "@/components/admin/LoginAdmin";
+import { cerrarSesion, sesionValida } from "@/lib/admin-auth";
 import { formatoMoneda } from "@/lib/format";
 import {
   crearProducto,
@@ -43,6 +45,8 @@ const pestanas: { id: Pestana; etiqueta: string; Icono: typeof IconoGrafica }[] 
 ];
 
 export default function PaginaAdmin() {
+  // null = comprobando sesión (evita parpadeo en la hidratación estática)
+  const [autenticado, setAutenticado] = useState<boolean | null>(null);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -52,13 +56,18 @@ export default function PaginaAdmin() {
   const [sembrando, setSembrando] = useState(false);
 
   useEffect(() => {
+    setAutenticado(sesionValida());
+  }, []);
+
+  useEffect(() => {
+    if (!autenticado) return;
     const cancelaciones = [
       suscribirProductos(setProductos),
       suscribirVentas(setVentas),
       suscribirClientes(setClientes),
     ];
     return () => cancelaciones.forEach((c) => c());
-  }, []);
+  }, [autenticado]);
 
   const ingresos = useMemo(
     () => ventas.filter((v) => v.estado !== "cancelada").reduce((acc, v) => acc + v.total, 0),
@@ -100,10 +109,13 @@ export default function PaginaAdmin() {
     }
   }
 
-  async function cerrarSesion() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    window.location.reload();
+  function salir() {
+    cerrarSesion();
+    setAutenticado(false);
   }
+
+  if (autenticado === null) return null;
+  if (!autenticado) return <LoginAdmin onExito={() => setAutenticado(true)} />;
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-16">
@@ -128,7 +140,7 @@ export default function PaginaAdmin() {
               <span className="hidden sm:inline">Ver tienda</span>
             </Link>
             <button
-              onClick={cerrarSesion}
+              onClick={salir}
               className="flex items-center gap-2 rounded-2xl border border-glass-border bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/15 hover:text-white"
             >
               <IconoSalir className="h-4 w-4" />

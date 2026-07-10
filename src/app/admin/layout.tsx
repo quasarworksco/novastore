@@ -1,23 +1,12 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
-import { COOKIE_SESION, tokenValido } from "@/lib/admin-auth";
-import { LoginAdmin } from "@/components/admin/LoginAdmin";
 
 export const metadata: Metadata = {
   title: "Panel Administrativo — NovaStore",
   robots: { index: false, follow: false },
 };
 
-/**
- * Ruta protegida: valida la cookie de sesión en el servidor.
- * Sin sesión válida se renderiza el formulario de acceso en lugar del panel.
- */
+// El gate de autenticación vive en el cliente (src/app/admin/page.tsx)
+// para que la ruta funcione en hosting estático como GitHub Pages.
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const token = cookies().get(COOKIE_SESION)?.value;
-
-  if (!tokenValido(token)) {
-    return <LoginAdmin />;
-  }
-
   return <>{children}</>;
 }
