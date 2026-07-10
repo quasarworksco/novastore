@@ -3,11 +3,11 @@ import type { HTMLAttributes } from "react";
 type Tono = "verde" | "ambar" | "rojo" | "neutro" | "violeta";
 
 const tonos: Record<Tono, string> = {
-  verde: "border-emerald-400/30 bg-emerald-500/15 text-emerald-300",
-  ambar: "border-amber-400/30 bg-amber-500/15 text-amber-300",
-  rojo: "border-rose-400/30 bg-rose-500/15 text-rose-300",
-  neutro: "border-glass-border bg-white/10 text-slate-300",
-  violeta: "border-violet-400/30 bg-violet-500/15 text-violet-300",
+  verde: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  ambar: "border-amber-200 bg-amber-50 text-amber-700",
+  rojo: "border-rose-200 bg-rose-50 text-rose-600",
+  neutro: "border-slate-200 bg-slate-50 text-slate-600",
+  violeta: "border-indigo-200 bg-indigo-50 text-indigo-700",
 };
 
 interface Props extends HTMLAttributes<HTMLSpanElement> {

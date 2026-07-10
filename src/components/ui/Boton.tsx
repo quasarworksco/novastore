@@ -6,11 +6,11 @@ type Variante = "primario" | "vidrio" | "peligro" | "fantasma";
 
 const estilos: Record<Variante, string> = {
   primario:
-    "bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-400 text-white shadow-glow hover:brightness-110",
+    "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-glow hover:brightness-110",
   vidrio:
-    "border border-glass-border bg-glass-strong text-white backdrop-blur-xl hover:bg-white/20",
-  peligro: "border border-rose-400/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25",
-  fantasma: "text-slate-300 hover:bg-white/10 hover:text-white",
+    "border border-glass-border bg-white/80 text-slate-800 backdrop-blur hover:bg-white shadow-soft",
+  peligro: "border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100",
+  fantasma: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
 };
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {

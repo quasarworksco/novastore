@@ -10,7 +10,7 @@ export function TablaClientes({ clientes }: { clientes: Cliente[] }) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead>
-            <tr className="border-b border-glass-border text-[11px] uppercase tracking-wider text-slate-400">
+            <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500">
               <th className="px-5 py-4 font-medium">Cliente</th>
               <th className="px-3 py-4 font-medium">Teléfono</th>
               <th className="px-3 py-4 text-right font-medium">Pedidos</th>
@@ -22,15 +22,15 @@ export function TablaClientes({ clientes }: { clientes: Cliente[] }) {
             {clientes.map((c) => (
               <tr
                 key={c.id}
-                className="border-b border-glass-border/50 transition-colors last:border-0 hover:bg-white/[0.04]"
+                className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
               >
-                <td className="px-5 py-3 font-medium text-white">{c.nombre || "—"}</td>
-                <td className="px-3 py-3 text-slate-300">{c.telefono || "—"}</td>
-                <td className="px-3 py-3 text-right text-slate-200">{c.pedidos}</td>
-                <td className="px-3 py-3 text-right font-semibold text-emerald-300">
+                <td className="px-5 py-3 font-medium text-slate-900">{c.nombre || "—"}</td>
+                <td className="px-3 py-3 text-slate-600">{c.telefono || "—"}</td>
+                <td className="px-3 py-3 text-right text-slate-700">{c.pedidos}</td>
+                <td className="px-3 py-3 text-right font-semibold text-emerald-600">
                   {formatoMoneda(c.totalGastado)}
                 </td>
-                <td className="whitespace-nowrap px-5 py-3 text-right text-slate-400">
+                <td className="whitespace-nowrap px-5 py-3 text-right text-slate-500">
                   {formatoFecha(c.ultimoPedido)}
                 </td>
               </tr>
@@ -40,7 +40,7 @@ export function TablaClientes({ clientes }: { clientes: Cliente[] }) {
       </div>
 
       {clientes.length === 0 && (
-        <p className="px-5 py-10 text-center text-sm text-slate-400">
+        <p className="px-5 py-10 text-center text-sm text-slate-500">
           Aún no hay clientes registrados. Se crean automáticamente con cada pedido.
         </p>
       )}

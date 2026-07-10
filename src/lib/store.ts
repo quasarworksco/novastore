@@ -1,35 +1,23 @@
 "use client";
 
 /**
- * Capa de acceso a datos.
+ * Capa de datos de la tienda.
  *
- * Con Firebase configurado usa Firestore en tiempo real (onSnapshot);
- * sin credenciales cae a un almacén demo en memoria persistido en
- * localStorage, con la misma API de suscripción, para que la tienda y el
- * panel administrativo funcionen completos desde el primer arranque.
+ * Con Firebase configurado usa Firestore vía REST (src/lib/firestore-rest.ts):
+ * fetch inicial + sondeo ligero para simular tiempo real, y refresco inmediato
+ * tras cada mutación. Sin credenciales cae a un almacén demo en localStorage
+ * con la misma API, para que todo funcione desde el primer arranque.
  */
 
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  increment,
-  onSnapshot,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from "firebase/firestore";
 import { productosSemilla } from "@/data/seed";
-import { firebaseConfigurado, obtenerDb } from "./firebase";
+import { firebaseConfigurado } from "./firebase";
+import * as rest from "./firestore-rest";
 import type { Cliente, Producto, ProductoInput, Venta } from "./types";
 
 export const modoDemo = !firebaseConfigurado;
 
 type Unsubscribe = () => void;
+const INTERVALO_SONDEO_MS = 15000;
 
 /* ── Almacén demo (localStorage) ─────────────────────────────────── */
 
@@ -41,19 +29,16 @@ interface EstadoDemo {
 
 const CLAVE_DEMO = "novastore-demo-v1";
 let estadoDemo: EstadoDemo | null = null;
-const oyentes = new Set<() => void>();
+const oyentesDemo = new Set<() => void>();
 
 function cargarDemo(): EstadoDemo {
   if (estadoDemo) return estadoDemo;
   if (typeof window !== "undefined") {
     try {
       const crudo = window.localStorage.getItem(CLAVE_DEMO);
-      if (crudo) {
-        estadoDemo = JSON.parse(crudo) as EstadoDemo;
-        return estadoDemo;
-      }
+      if (crudo) return (estadoDemo = JSON.parse(crudo) as EstadoDemo);
     } catch {
-      // localStorage corrupto o inaccesible: re-sembrar
+      /* re-sembrar */
     }
   }
   estadoDemo = { productos: [...productosSemilla], ventas: [], clientes: [] };
@@ -66,14 +51,14 @@ function persistirDemo() {
     try {
       window.localStorage.setItem(CLAVE_DEMO, JSON.stringify(estadoDemo));
     } catch {
-      // cuota excedida: seguir solo en memoria
+      /* cuota excedida */
     }
   }
 }
 
 function notificarDemo() {
   persistirDemo();
-  oyentes.forEach((fn) => fn());
+  oyentesDemo.forEach((fn) => fn());
 }
 
 function idDemo(prefijo: string): string {
@@ -82,44 +67,77 @@ function idDemo(prefijo: string): string {
 
 function suscribirDemo<T>(selector: (e: EstadoDemo) => T[], cb: (datos: T[]) => void): Unsubscribe {
   const emitir = () => cb(selector(cargarDemo()).slice());
-  oyentes.add(emitir);
+  oyentesDemo.add(emitir);
   emitir();
-  return () => oyentes.delete(emitir);
+  return () => oyentesDemo.delete(emitir);
 }
 
-/* ── Suscripciones en tiempo real ────────────────────────────────── */
+/* ── Fuente REST con sondeo (para modo Firebase) ─────────────────── */
+
+interface Fuente<T> {
+  suscribir: (cb: (datos: T[]) => void) => Unsubscribe;
+  refrescar: () => Promise<void>;
+}
+
+function crearFuente<T>(coleccion: string, ordenar: (datos: T[]) => T[]): Fuente<T> {
+  const suscriptores = new Set<(datos: T[]) => void>();
+  let datos: T[] = [];
+  let intervalo: ReturnType<typeof setInterval> | null = null;
+  let cargadoAlMenosUnaVez = false;
+
+  async function refrescar() {
+    try {
+      datos = ordenar(await rest.listar<T>(coleccion));
+      cargadoAlMenosUnaVez = true;
+      suscriptores.forEach((cb) => cb(datos));
+    } catch {
+      // Mantener los últimos datos ante un fallo puntual de red.
+    }
+  }
+
+  function suscribir(cb: (datos: T[]) => void): Unsubscribe {
+    suscriptores.add(cb);
+    if (cargadoAlMenosUnaVez) cb(datos);
+    if (!intervalo) {
+      refrescar();
+      intervalo = setInterval(refrescar, INTERVALO_SONDEO_MS);
+    }
+    return () => {
+      suscriptores.delete(cb);
+      if (suscriptores.size === 0 && intervalo) {
+        clearInterval(intervalo);
+        intervalo = null;
+      }
+    };
+  }
+
+  return { suscribir, refrescar };
+}
+
+const porFecha = <T extends { creadoEn: number }>(d: T[]) => [...d].sort((a, b) => b.creadoEn - a.creadoEn);
+
+const fuenteProductos = crearFuente<Producto>("productos", porFecha);
+const fuenteVentas = crearFuente<Venta>("ventas", porFecha);
+const fuenteClientes = crearFuente<Cliente>("clientes", (d) =>
+  [...d].sort((a, b) => b.ultimoPedido - a.ultimoPedido)
+);
+
+/* ── Suscripciones públicas ──────────────────────────────────────── */
 
 export function suscribirProductos(cb: (productos: Producto[]) => void): Unsubscribe {
-  if (modoDemo) {
-    return suscribirDemo(
-      (e) => [...e.productos].sort((a, b) => b.creadoEn - a.creadoEn),
-      cb
-    );
-  }
-  const q = query(collection(obtenerDb(), "productos"), orderBy("creadoEn", "desc"));
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Producto, "id">), id: d.id })));
-  });
+  if (modoDemo) return suscribirDemo((e) => porFecha(e.productos), cb);
+  return fuenteProductos.suscribir(cb);
 }
 
 export function suscribirVentas(cb: (ventas: Venta[]) => void): Unsubscribe {
-  if (modoDemo) {
-    return suscribirDemo((e) => [...e.ventas].sort((a, b) => b.creadoEn - a.creadoEn), cb);
-  }
-  const q = query(collection(obtenerDb(), "ventas"), orderBy("creadoEn", "desc"));
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Venta, "id">), id: d.id })));
-  });
+  if (modoDemo) return suscribirDemo((e) => porFecha(e.ventas), cb);
+  return fuenteVentas.suscribir(cb);
 }
 
 export function suscribirClientes(cb: (clientes: Cliente[]) => void): Unsubscribe {
-  if (modoDemo) {
+  if (modoDemo)
     return suscribirDemo((e) => [...e.clientes].sort((a, b) => b.ultimoPedido - a.ultimoPedido), cb);
-  }
-  const q = query(collection(obtenerDb(), "clientes"), orderBy("ultimoPedido", "desc"));
-  return onSnapshot(q, (snap) => {
-    cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Cliente, "id">), id: d.id })));
-  });
+  return fuenteClientes.suscribir(cb);
 }
 
 /* ── CRUD de productos ───────────────────────────────────────────── */
@@ -131,7 +149,8 @@ export async function crearProducto(datos: ProductoInput): Promise<void> {
     notificarDemo();
     return;
   }
-  await addDoc(collection(obtenerDb(), "productos"), { ...datos, creadoEn: ahora, actualizadoEn: ahora });
+  await rest.crear("productos", { ...datos, creadoEn: ahora, actualizadoEn: ahora });
+  await fuenteProductos.refrescar();
 }
 
 export async function actualizarProducto(id: string, datos: Partial<ProductoInput>): Promise<void> {
@@ -145,7 +164,8 @@ export async function actualizarProducto(id: string, datos: Partial<ProductoInpu
     }
     return;
   }
-  await updateDoc(doc(obtenerDb(), "productos", id), { ...datos, actualizadoEn: ahora });
+  await rest.actualizar("productos", id, { ...datos, actualizadoEn: ahora });
+  await fuenteProductos.refrescar();
 }
 
 export async function eliminarProducto(id: string): Promise<void> {
@@ -155,24 +175,25 @@ export async function eliminarProducto(id: string): Promise<void> {
     notificarDemo();
     return;
   }
-  await deleteDoc(doc(obtenerDb(), "productos", id));
+  await rest.eliminar("productos", id);
+  await fuenteProductos.refrescar();
 }
 
 /* ── Registro de ventas y clientes ───────────────────────────────── */
 
-export async function registrarVenta(venta: Omit<Venta, "id" | "creadoEn" | "estado">): Promise<void> {
+export async function registrarVenta(
+  venta: Omit<Venta, "id" | "creadoEn" | "estado">
+): Promise<void> {
   const ahora = Date.now();
   const telefono = venta.cliente.telefono.replace(/\D/g, "");
 
   if (modoDemo) {
     const estado = cargarDemo();
     estado.ventas.unshift({ ...venta, id: idDemo("venta"), estado: "pendiente", creadoEn: ahora });
-
     for (const item of venta.items) {
       const p = estado.productos.find((x) => x.id === item.productoId);
       if (p) p.stock = Math.max(0, p.stock - item.cantidad);
     }
-
     const existente = estado.clientes.find((c) => c.telefono === telefono);
     if (existente) {
       existente.pedidos += 1;
@@ -194,29 +215,35 @@ export async function registrarVenta(venta: Omit<Venta, "id" | "creadoEn" | "est
     return;
   }
 
-  const db = obtenerDb();
-  await addDoc(collection(db, "ventas"), { ...venta, estado: "pendiente", creadoEn: ahora });
+  await rest.crear("ventas", { ...venta, estado: "pendiente", creadoEn: ahora });
 
+  // Descontar stock (lectura-modificación-escritura por ítem).
   await Promise.all(
-    venta.items.map((item) =>
-      updateDoc(doc(db, "productos", item.productoId), {
-        stock: increment(-item.cantidad),
-        actualizadoEn: ahora,
-      }).catch(() => undefined)
-    )
+    venta.items.map(async (item) => {
+      const p = await rest.obtener<Producto>("productos", item.productoId).catch(() => null);
+      if (p) {
+        await rest
+          .actualizar("productos", item.productoId, {
+            stock: Math.max(0, p.stock - item.cantidad),
+            actualizadoEn: ahora,
+          })
+          .catch(() => undefined);
+      }
+    })
   );
 
-  const clientes = await getDocs(query(collection(db, "clientes"), where("telefono", "==", telefono)));
-  if (!clientes.empty) {
-    const ref = clientes.docs[0].ref;
-    await updateDoc(ref, {
-      pedidos: increment(1),
-      totalGastado: increment(venta.total),
+  // Upsert de cliente por teléfono.
+  const clientes = await rest.listar<Cliente>("clientes").catch(() => [] as Cliente[]);
+  const existente = clientes.find((c) => c.telefono === telefono);
+  if (existente) {
+    await rest.actualizar("clientes", existente.id, {
+      pedidos: existente.pedidos + 1,
+      totalGastado: existente.totalGastado + venta.total,
       ultimoPedido: ahora,
-      nombre: venta.cliente.nombre,
+      nombre: venta.cliente.nombre || existente.nombre,
     });
   } else {
-    await setDoc(doc(collection(db, "clientes")), {
+    await rest.crear("clientes", {
       nombre: venta.cliente.nombre,
       telefono,
       pedidos: 1,
@@ -225,6 +252,12 @@ export async function registrarVenta(venta: Omit<Venta, "id" | "creadoEn" | "est
       ultimoPedido: ahora,
     });
   }
+
+  await Promise.all([
+    fuenteProductos.refrescar(),
+    fuenteVentas.refrescar(),
+    fuenteClientes.refrescar(),
+  ]);
 }
 
 export async function actualizarEstadoVenta(id: string, estado: Venta["estado"]): Promise<void> {
@@ -237,5 +270,6 @@ export async function actualizarEstadoVenta(id: string, estado: Venta["estado"])
     }
     return;
   }
-  await updateDoc(doc(obtenerDb(), "ventas", id), { estado });
+  await rest.actualizar("ventas", id, { estado });
+  await fuenteVentas.refrescar();
 }

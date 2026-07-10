@@ -24,9 +24,9 @@ interface Props {
 
 /** Color del margen: verde positivo, ámbar bajo el umbral, rojo negativo. */
 function claseMargen(porcentaje: number): string {
-  if (porcentaje < 0) return "text-rose-300";
-  if (porcentaje < UMBRAL_MARGEN_BAJO) return "text-amber-300";
-  return "text-emerald-300";
+  if (porcentaje < 0) return "text-rose-600";
+  if (porcentaje < UMBRAL_MARGEN_BAJO) return "text-amber-600";
+  return "text-emerald-600";
 }
 
 function CeldaMargen({ producto }: { producto: Producto }) {
@@ -52,7 +52,7 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[980px] text-left text-sm">
           <thead>
-            <tr className="border-b border-glass-border text-[11px] uppercase tracking-wider text-slate-400">
+            <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500">
               <th className="px-5 py-4 font-medium">Producto</th>
               <th className="px-3 py-4 font-medium">Categoría</th>
               <th className="px-3 py-4 text-right font-medium">Stock</th>
@@ -76,11 +76,11 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="border-b border-glass-border/50 transition-colors last:border-0 hover:bg-white/[0.04]"
+                    className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
                   >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-slate-900/60">
+                        <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                           {p.imagenes[0] ? (
                             <Image
                               src={p.imagenes[0]}
@@ -91,34 +91,34 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
                               unoptimized={p.imagenes[0].startsWith("data:")}
                             />
                           ) : (
-                            <span className="grid h-full w-full place-items-center text-slate-600">
+                            <span className="grid h-full w-full place-items-center text-slate-300">
                               <IconoImagen className="h-5 w-5" />
                             </span>
                           )}
                         </div>
                         <div className="min-w-0">
-                          <p className="max-w-[220px] truncate font-semibold text-white">
+                          <p className="max-w-[220px] truncate font-semibold text-slate-900">
                             {p.nombre}
                           </p>
                           {!p.activo && <Insignia tono="neutro">Inactivo</Insignia>}
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-slate-300">{p.categoria}</td>
+                    <td className="px-3 py-3 text-slate-600">{p.categoria}</td>
                     <td className="px-3 py-3 text-right">
                       {p.stock > 0 ? (
-                        <span className="text-slate-200">{p.stock}</span>
+                        <span className="text-slate-700">{p.stock}</span>
                       ) : (
                         <Insignia tono="rojo">0</Insignia>
                       )}
                     </td>
-                    <td className="px-3 py-3 text-right text-slate-300">
+                    <td className="px-3 py-3 text-right text-slate-600">
                       {formatoMoneda(p.precioCosto)}
                     </td>
-                    <td className="px-3 py-3 text-right font-medium text-white">
+                    <td className="px-3 py-3 text-right font-medium text-slate-900">
                       {formatoMoneda(p.precioVenta)}
                     </td>
-                    <td className="px-3 py-3 text-right text-cyan-300">
+                    <td className="px-3 py-3 text-right text-sky-600">
                       {formatoMoneda(p.precioVentaDivisas)}
                     </td>
                     <td className="px-3 py-3 text-right">
@@ -137,14 +137,14 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
                         <button
                           onClick={() => onEditar(p)}
                           aria-label={`Editar ${p.nombre}`}
-                          className="grid h-8 w-8 place-items-center rounded-xl border border-glass-border bg-white/5 text-slate-300 transition hover:bg-white/15 hover:text-white"
+                          className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
                         >
                           <IconoLapiz className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => onEliminar(p)}
                           aria-label={`Eliminar ${p.nombre}`}
-                          className="grid h-8 w-8 place-items-center rounded-xl border border-rose-400/20 bg-rose-500/10 text-rose-300 transition hover:bg-rose-500/25"
+                          className="grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
                         >
                           <IconoBasura className="h-4 w-4" />
                         </button>
@@ -159,7 +159,7 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
       </div>
 
       {productos.length === 0 && (
-        <p className="px-5 py-10 text-center text-sm text-slate-400">
+        <p className="px-5 py-10 text-center text-sm text-slate-500">
           Aún no hay productos. Crea el primero con el botón «Nuevo producto».
         </p>
       )}

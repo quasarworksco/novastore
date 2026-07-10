@@ -24,7 +24,7 @@ export function ResumenFinanciero({ productos }: { productos: Producto[] }) {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
           Resumen Financiero
         </h2>
         <div className="flex gap-2">
@@ -74,10 +74,10 @@ export function ResumenFinanciero({ productos }: { productos: Producto[] }) {
         />
       </div>
 
-      <GlassCard className="p-4 text-xs leading-relaxed text-slate-400">
-        La <span className="text-slate-200">proyección de ventas</span> asume la venta de todo el
+      <GlassCard className="p-4 text-xs leading-relaxed text-slate-500">
+        La <span className="font-medium text-slate-700">proyección de ventas</span> asume la venta de todo el
         stock actual al precio vigente; la{" "}
-        <span className="text-emerald-300">ganancia proyectada</span> descuenta el valor del
+        <span className="font-medium text-emerald-600">ganancia proyectada</span> descuenta el valor del
         inventario a costo. Los montos se recalculan automáticamente al crear, editar o eliminar
         productos.
       </GlassCard>

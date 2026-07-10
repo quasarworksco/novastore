@@ -13,12 +13,12 @@ import {
   IconoCaja,
   IconoDolar,
   IconoGrafica,
-  IconoLogo,
   IconoMas,
   IconoOjo,
   IconoSalir,
   IconoUsuarios,
 } from "@/components/icons";
+import { Logo } from "@/components/Logo";
 import { Boton } from "@/components/ui/Boton";
 import { Insignia } from "@/components/ui/Insignia";
 import { LoginAdmin } from "@/components/admin/LoginAdmin";
@@ -121,27 +121,23 @@ export default function PaginaAdmin() {
     <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-16">
       {/* Cabecera */}
       <header className="sticky top-0 z-40 -mx-4 mb-8 px-4 pt-4">
-        <div className="flex items-center gap-3 rounded-3xl border border-glass-border bg-slate-950/50 px-5 py-3 shadow-glass backdrop-blur-2xl">
-          <span className="grid h-9 w-9 place-items-center rounded-2xl bg-gradient-to-br from-violet-500 to-cyan-400 shadow-glow">
-            <IconoLogo className="h-5 w-5 text-white" />
-          </span>
-          <div className="min-w-0">
-            <h1 className="truncate text-sm font-bold text-white sm:text-base">
-              Panel Administrativo
-            </h1>
-            {modoDemo && <Insignia tono="ambar">Modo demo — sin Firebase</Insignia>}
+        <div className="flex items-center gap-3 rounded-3xl border border-glass-border bg-white/80 px-5 py-3 shadow-soft backdrop-blur-2xl">
+          <Logo size="md" conMarca />
+          <div className="hidden min-w-0 sm:block">
+            <span className="text-xs font-medium text-slate-400">/ Panel</span>
           </div>
+          {modoDemo && <Insignia tono="ambar">Modo demo</Insignia>}
           <div className="ml-auto flex items-center gap-2">
             <Link
               href="/"
-              className="flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10 hover:text-white"
+              className="flex items-center gap-2 rounded-2xl px-3 py-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
             >
               <IconoOjo className="h-4 w-4" />
               <span className="hidden sm:inline">Ver tienda</span>
             </Link>
             <button
               onClick={salir}
-              className="flex items-center gap-2 rounded-2xl border border-glass-border bg-white/5 px-3 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/15 hover:text-white"
+              className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
             >
               <IconoSalir className="h-4 w-4" />
               <span className="hidden sm:inline">Salir</span>
@@ -151,20 +147,20 @@ export default function PaginaAdmin() {
       </header>
 
       {/* Pestañas */}
-      <nav className="mb-8 flex gap-1 overflow-x-auto rounded-3xl border border-glass-border bg-white/[0.04] p-1.5 backdrop-blur-xl">
+      <nav className="mb-8 flex gap-1 overflow-x-auto rounded-3xl border border-glass-border bg-white/70 p-1.5 shadow-soft backdrop-blur-xl">
         {pestanas.map(({ id, etiqueta, Icono }) => (
           <button
             key={id}
             onClick={() => setPestana(id)}
             className={`relative flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
-              pestana === id ? "text-white" : "text-slate-400 hover:text-slate-200"
+              pestana === id ? "text-indigo-700" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             {pestana === id && (
               <motion.span
                 layoutId="pestana-admin"
                 transition={{ type: "spring", bounce: 0.25, duration: 0.55 }}
-                className="absolute inset-0 rounded-2xl border border-glass-border bg-gradient-to-r from-violet-500/30 to-cyan-400/20 shadow-glass"
+                className="absolute inset-0 rounded-2xl border border-indigo-100 bg-indigo-50 shadow-soft"
               />
             )}
             <Icono className="relative z-10 h-4 w-4" />
@@ -217,7 +213,7 @@ export default function PaginaAdmin() {
               <ResumenFinanciero productos={productos} />
 
               <section className="space-y-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
                   Últimas ventas
                 </h2>
                 <TablaVentas ventas={ventas.slice(0, 5)} />
@@ -228,7 +224,7 @@ export default function PaginaAdmin() {
           {pestana === "productos" && (
             <>
               <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
                   Control de productos ({productos.length})
                 </h2>
                 <div className="flex gap-2">
@@ -254,7 +250,7 @@ export default function PaginaAdmin() {
 
           {pestana === "ventas" && (
             <>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
                 Registro de ventas ({ventas.length})
               </h2>
               <TablaVentas ventas={ventas} />
@@ -263,7 +259,7 @@ export default function PaginaAdmin() {
 
           {pestana === "clientes" && (
             <>
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-300">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
                 Registro de clientes ({clientes.length})
               </h2>
               <TablaClientes clientes={clientes} />

@@ -36,14 +36,14 @@ export function CategoryTabs({ categorias, activa, onCambiar }: Props) {
             key={categoria}
             onClick={() => onCambiar(categoria)}
             className={`relative flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-medium transition-colors ${
-              esActiva ? "text-white" : "text-slate-400 hover:text-slate-200"
+              esActiva ? "text-indigo-700" : "text-slate-500 hover:text-slate-900"
             }`}
           >
             {esActiva && (
               <motion.span
                 layoutId="categoria-activa"
                 transition={{ type: "spring", bounce: 0.25, duration: 0.55 }}
-                className="absolute inset-0 rounded-2xl border border-glass-border bg-gradient-to-r from-violet-500/30 to-cyan-400/20 shadow-glass backdrop-blur-xl"
+                className="absolute inset-0 rounded-2xl border border-indigo-100 bg-indigo-50 shadow-soft"
               />
             )}
             <Icono className="relative z-10 h-4 w-4" />

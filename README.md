@@ -10,7 +10,8 @@ Tienda online de alto impacto visual construida con **Next.js (App Router) + Typ
 | --- | --- |
 | UI | React 18 / Next.js 14, Tailwind CSS, Framer Motion |
 | Iconografía | SVG minimalista propio (`src/components/icons.tsx`, sin emojis) |
-| Datos | Firestore (tiempo real con `onSnapshot`) con fallback a modo demo |
+| Datos | Firestore vía API REST (fetch + CORS, fiable en cualquier red) con fallback a modo demo |
+| Dominio | GitHub Pages en `novastore.dgp-link.com` (Open Graph + Twitter card incluidos) |
 | Medios | Cloudinary (unsigned upload preset) |
 | Checkout | WhatsApp (`wa.me/584121002090`) con resumen del pedido prellenado |
 | Admin | Ruta protegida `/admin` con usuario/contraseña y cookie httpOnly firmada |
@@ -54,8 +55,11 @@ contenido de [`firestore.rules`](./firestore.rules); si la base quedó en "modo 
 }
 ```
 
-La rentabilidad **no se almacena**: se calcula en el cliente (`src/lib/finance.ts`), por lo
-que editar un producto actualiza márgenes y totales del dashboard en tiempo real.
+El acceso a Firestore es por **API REST** (`src/lib/firestore-rest.ts`): lecturas con
+fetch + sondeo ligero y escrituras directas, para evitar el canal WebChannel del SDK, que se
+cuelga tras proxies y en redes móviles (causaba que "Guardar" se quedara colgado). La
+rentabilidad **no se almacena**: se calcula en el cliente (`src/lib/finance.ts`), por lo que
+editar un producto actualiza márgenes y totales del dashboard al refrescar.
 
 - Diferencia (margen neto): `precioVenta - precioCosto`
 - % de ganancia: `((precioVenta - precioCosto) / precioCosto) * 100` (2 decimales)

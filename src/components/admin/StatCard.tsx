@@ -7,11 +7,11 @@ import { GlassCard } from "@/components/ui/GlassCard";
 type Tono = "violeta" | "verde" | "cian" | "ambar" | "rojo";
 
 const tonos: Record<Tono, { icono: string; valor: string }> = {
-  violeta: { icono: "bg-violet-500/20 text-violet-300", valor: "text-white" },
-  verde: { icono: "bg-emerald-500/20 text-emerald-300", valor: "text-emerald-300" },
-  cian: { icono: "bg-cyan-500/20 text-cyan-300", valor: "text-white" },
-  ambar: { icono: "bg-amber-500/20 text-amber-300", valor: "text-amber-300" },
-  rojo: { icono: "bg-rose-500/20 text-rose-300", valor: "text-rose-300" },
+  violeta: { icono: "bg-indigo-50 text-indigo-600", valor: "text-slate-900" },
+  verde: { icono: "bg-emerald-50 text-emerald-600", valor: "text-emerald-600" },
+  cian: { icono: "bg-sky-50 text-sky-600", valor: "text-slate-900" },
+  ambar: { icono: "bg-amber-50 text-amber-600", valor: "text-amber-600" },
+  rojo: { icono: "bg-rose-50 text-rose-600", valor: "text-rose-600" },
 };
 
 interface Props {
@@ -34,9 +34,9 @@ export function StatCard({ etiqueta, valor, detalle, icono: Icono, tono = "viole
           <Icono className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{etiqueta}</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-500">{etiqueta}</p>
           <p className={`mt-1 truncate text-2xl font-bold ${tonos[tono].valor}`}>{valor}</p>
-          {detalle && <p className="mt-0.5 text-xs text-slate-400">{detalle}</p>}
+          {detalle && <p className="mt-0.5 text-xs text-slate-500">{detalle}</p>}
         </div>
       </GlassCard>
     </motion.div>
