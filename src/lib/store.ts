@@ -385,6 +385,28 @@ export async function eliminarProducto(id: string): Promise<void> {
 
 /* ── Registro de ventas y clientes ───────────────────────────────── */
 
+/**
+ * Encuentra el cliente que corresponde a una venta.
+ *
+ * Con teléfono se busca por teléfono (y como respaldo por nombre, para
+ * completarle el teléfono a un cliente registrado sin él). Sin teléfono se
+ * busca SOLO por nombre: nunca por teléfono vacío, porque eso hacía que
+ * todas las ventas sin teléfono se acumularan en un mismo cliente.
+ */
+function buscarClienteExistente(
+  clientes: Cliente[],
+  nombre: string,
+  telefono: string
+): Cliente | undefined {
+  const nombreNorm = nombre.trim().toLowerCase();
+  const porNombre = () =>
+    nombreNorm ? clientes.find((c) => c.nombre.trim().toLowerCase() === nombreNorm) : undefined;
+  if (telefono) {
+    return clientes.find((c) => c.telefono === telefono) ?? porNombre();
+  }
+  return porNombre();
+}
+
 export async function registrarVenta(venta: VentaInput): Promise<void> {
   const ahora = Date.now();
   const telefono = venta.cliente.telefono.replace(/\D/g, "");
@@ -396,12 +418,12 @@ export async function registrarVenta(venta: VentaInput): Promise<void> {
       const p = estado.productos.find((x) => x.id === item.productoId);
       if (p) p.stock = Math.max(0, p.stock - item.cantidad);
     }
-    const existente = estado.clientes.find((c) => c.telefono === telefono);
+    const existente = buscarClienteExistente(estado.clientes, venta.cliente.nombre, telefono);
     if (existente) {
       existente.pedidos += 1;
       existente.totalGastado += venta.total;
       existente.ultimoPedido = ahora;
-      existente.nombre = venta.cliente.nombre || existente.nombre;
+      if (!existente.telefono && telefono) existente.telefono = telefono;
     } else {
       estado.clientes.push({
         id: idDemo("cli"),
@@ -434,15 +456,15 @@ export async function registrarVenta(venta: VentaInput): Promise<void> {
     })
   );
 
-  // Upsert de cliente por teléfono.
+  // Upsert de cliente: por teléfono si lo hay, por nombre si no.
   const clientes = await rest.listar<Cliente>("clientes").catch(() => [] as Cliente[]);
-  const existente = clientes.find((c) => c.telefono === telefono);
+  const existente = buscarClienteExistente(clientes, venta.cliente.nombre, telefono);
   if (existente) {
     await rest.actualizar("clientes", existente.id, {
       pedidos: existente.pedidos + 1,
       totalGastado: existente.totalGastado + venta.total,
       ultimoPedido: ahora,
-      nombre: venta.cliente.nombre || existente.nombre,
+      ...(!existente.telefono && telefono ? { telefono } : {}),
     });
   } else {
     await rest.crear("clientes", {
