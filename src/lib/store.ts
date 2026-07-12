@@ -4,9 +4,9 @@
  * Capa de datos de la tienda.
  *
  * Con Firebase configurado usa Firestore vía REST (src/lib/firestore-rest.ts):
- * fetch inicial + sondeo ligero para simular tiempo real, y refresco inmediato
- * tras cada mutación. Sin credenciales cae a un almacén demo en localStorage
- * con la misma API, para que todo funcione desde el primer arranque.
+ * una carga por visita + caché local, y las mutaciones actualizan el estado
+ * en memoria sin releer colecciones. Sin credenciales cae a un almacén demo
+ * en localStorage con la misma API, para que todo funcione desde el arranque.
  */
 
 import { productosSemilla } from "@/data/seed";
@@ -93,15 +93,22 @@ function suscribirDemo<T>(selector: (e: EstadoDemo) => T[], cb: (datos: T[]) => 
  *    un intervalo de 15s dejado abierto toda la noche agota la cuota él solo).
  *  - Caché en localStorage: pinta al instante en visitas repetidas y sirve
  *    de respaldo visual si la red o la cuota fallan.
- *  - Revalidación solo al volver a la pestaña y si pasaron > 5 minutos.
- *  - Refresco inmediato tras cada mutación (crear/editar/borrar).
+ *  - Revalidación solo al volver a la pestaña y si pasaron > 15 minutos.
+ *  - Las mutaciones (crear/editar/borrar) actualizan el estado local tras
+ *    el write exitoso, sin releer la colección completa.
+ *  - Ante un fallo de lectura se reintenta una vez antes de mostrar el
+ *    aviso, y se rechequea cada minuto para retirarlo al reconectar.
  */
-const TTL_REVALIDACION_MS = 5 * 60 * 1000;
+const TTL_REVALIDACION_MS = 15 * 60 * 1000;
+const REINTENTO_ERROR_MS = 4000;
+const RECHEQUEO_ERROR_MS = 60000;
 
 interface Fuente<T> {
   suscribir: (cb: (datos: T[]) => void) => Unsubscribe;
   refrescar: () => Promise<void>;
   revalidarSiViejo: () => void;
+  /** Aplica una mutación local (tras un write exitoso) sin releer la colección. */
+  aplicarLocal: (mutador: (datos: T[]) => T[]) => void;
 }
 
 /** Aviso global de fallo de lectura (cuota agotada / sin conexión). */
@@ -153,7 +160,9 @@ function crearFuente<T>(coleccion: string, ordenar: (datos: T[]) => T[]): Fuente
     suscriptores.forEach((cb) => cb(datos));
   }
 
-  function refrescar(): Promise<void> {
+  let rechequeoProgramado = false;
+
+  function refrescar(esReintento = false): Promise<void> {
     if (enVuelo) return enVuelo;
     enVuelo = (async () => {
       try {
@@ -164,7 +173,6 @@ function crearFuente<T>(coleccion: string, ordenar: (datos: T[]) => T[]): Fuente
         marcarErrorLectura(false);
         emitir();
       } catch {
-        marcarErrorLectura(true);
         // Fallback: mostrar la última copia local conocida.
         if (!cargado) {
           const cache = leerCache();
@@ -174,11 +182,36 @@ function crearFuente<T>(coleccion: string, ordenar: (datos: T[]) => T[]): Fuente
             emitir();
           }
         }
+        if (!esReintento) {
+          // Un fallo aislado (micro-corte de red) no debe mostrar el aviso:
+          // reintentar una vez a los pocos segundos antes de alarmarse.
+          setTimeout(() => {
+            if (suscriptores.size > 0) refrescar(true);
+          }, REINTENTO_ERROR_MS);
+        } else {
+          marcarErrorLectura(true);
+          // Auto-recuperación: rechequear periódicamente para quitar el
+          // aviso solo cuando la conexión vuelva de verdad.
+          if (!rechequeoProgramado) {
+            rechequeoProgramado = true;
+            setTimeout(() => {
+              rechequeoProgramado = false;
+              if (suscriptores.size > 0 && hayErrorLectura) refrescar(true);
+            }, RECHEQUEO_ERROR_MS);
+          }
+        }
       } finally {
         enVuelo = null;
       }
     })();
     return enVuelo;
+  }
+
+  function aplicarLocal(mutador: (datos: T[]) => T[]) {
+    datos = ordenar(mutador(datos));
+    cargado = true;
+    guardarCache();
+    emitir();
   }
 
   function revalidarSiViejo() {
@@ -206,7 +239,7 @@ function crearFuente<T>(coleccion: string, ordenar: (datos: T[]) => T[]): Fuente
     };
   }
 
-  return { suscribir, refrescar, revalidarSiViejo };
+  return { suscribir, refrescar, revalidarSiViejo, aplicarLocal };
 }
 
 const porFecha = <T extends { creadoEn: number }>(d: T[]) => [...d].sort((a, b) => b.creadoEn - a.creadoEn);
@@ -329,8 +362,8 @@ export async function crearGasto(datos: GastoInput): Promise<void> {
     notificarDemo();
     return;
   }
-  await rest.crear("gastos", { ...datos, creadoEn: ahora });
-  await fuenteGastos.refrescar();
+  const id = await rest.crear("gastos", { ...datos, creadoEn: ahora });
+  fuenteGastos.aplicarLocal((d) => [{ ...datos, id, creadoEn: ahora }, ...d]);
 }
 
 export async function eliminarGasto(id: string): Promise<void> {
@@ -341,7 +374,7 @@ export async function eliminarGasto(id: string): Promise<void> {
     return;
   }
   await rest.eliminar("gastos", id);
-  await fuenteGastos.refrescar();
+  fuenteGastos.aplicarLocal((d) => d.filter((g) => g.id !== id));
 }
 
 /* ── CRUD de productos ───────────────────────────────────────────── */
@@ -353,8 +386,8 @@ export async function crearProducto(datos: ProductoInput): Promise<void> {
     notificarDemo();
     return;
   }
-  await rest.crear("productos", { ...datos, creadoEn: ahora, actualizadoEn: ahora });
-  await fuenteProductos.refrescar();
+  const id = await rest.crear("productos", { ...datos, creadoEn: ahora, actualizadoEn: ahora });
+  fuenteProductos.aplicarLocal((d) => [{ ...datos, id, creadoEn: ahora, actualizadoEn: ahora }, ...d]);
 }
 
 export async function actualizarProducto(id: string, datos: Partial<ProductoInput>): Promise<void> {
@@ -369,7 +402,9 @@ export async function actualizarProducto(id: string, datos: Partial<ProductoInpu
     return;
   }
   await rest.actualizar("productos", id, { ...datos, actualizadoEn: ahora });
-  await fuenteProductos.refrescar();
+  fuenteProductos.aplicarLocal((d) =>
+    d.map((p) => (p.id === id ? { ...p, ...datos, actualizadoEn: ahora } : p))
+  );
 }
 
 export async function eliminarProducto(id: string): Promise<void> {
@@ -380,7 +415,7 @@ export async function eliminarProducto(id: string): Promise<void> {
     return;
   }
   await rest.eliminar("productos", id);
-  await fuenteProductos.refrescar();
+  fuenteProductos.aplicarLocal((d) => d.filter((p) => p.id !== id));
 }
 
 /* ── Registro de ventas y clientes ───────────────────────────────── */
@@ -439,49 +474,64 @@ export async function registrarVenta(venta: VentaInput): Promise<void> {
     return;
   }
 
-  await rest.crear("ventas", { ...venta, creadoEn: ahora });
+  const idVenta = await rest.crear("ventas", { ...venta, creadoEn: ahora });
+  fuenteVentas.aplicarLocal((d) => [{ ...venta, id: idVenta, creadoEn: ahora }, ...d]);
 
   // Descontar stock (lectura-modificación-escritura por ítem).
   await Promise.all(
     venta.items.map(async (item) => {
       const p = await rest.obtener<Producto>("productos", item.productoId).catch(() => null);
       if (p) {
+        const nuevoStock = Math.max(0, p.stock - item.cantidad);
         await rest
-          .actualizar("productos", item.productoId, {
-            stock: Math.max(0, p.stock - item.cantidad),
-            actualizadoEn: ahora,
-          })
+          .actualizar("productos", item.productoId, { stock: nuevoStock, actualizadoEn: ahora })
           .catch(() => undefined);
+        fuenteProductos.aplicarLocal((d) =>
+          d.map((x) => (x.id === item.productoId ? { ...x, stock: nuevoStock } : x))
+        );
       }
     })
   );
 
-  // Upsert de cliente: por teléfono si lo hay, por nombre si no.
-  const clientes = await rest.listar<Cliente>("clientes").catch(() => [] as Cliente[]);
-  const existente = buscarClienteExistente(clientes, venta.cliente.nombre, telefono);
+  // Upsert de cliente: consulta puntual por teléfono (o por nombre si no
+  // hay teléfono) en lugar de leer la colección completa.
+  const candidatos = telefono
+    ? await rest.consultarPorCampo<Cliente>("clientes", "telefono", telefono).catch(() => [])
+    : await rest
+        .consultarPorCampo<Cliente>("clientes", "nombre", venta.cliente.nombre.trim())
+        .catch(() => [] as Cliente[]);
+  const existente = buscarClienteExistente(candidatos, venta.cliente.nombre, telefono);
+
   if (existente) {
-    await rest.actualizar("clientes", existente.id, {
+    const actualizado: Cliente = {
+      ...existente,
       pedidos: existente.pedidos + 1,
       totalGastado: existente.totalGastado + venta.total,
       ultimoPedido: ahora,
+      telefono: existente.telefono || telefono,
+    };
+    await rest.actualizar("clientes", existente.id, {
+      pedidos: actualizado.pedidos,
+      totalGastado: actualizado.totalGastado,
+      ultimoPedido: ahora,
       ...(!existente.telefono && telefono ? { telefono } : {}),
     });
+    fuenteClientes.aplicarLocal((d) => {
+      const resto = d.filter((c) => c.id !== existente.id);
+      return [...resto, actualizado];
+    });
   } else {
-    await rest.crear("clientes", {
+    const nuevo = {
       nombre: venta.cliente.nombre,
       telefono,
       pedidos: 1,
       totalGastado: venta.total,
       creadoEn: ahora,
       ultimoPedido: ahora,
-    });
+    };
+    const idCliente = await rest.crear("clientes", nuevo);
+    fuenteClientes.aplicarLocal((d) => [{ ...nuevo, id: idCliente }, ...d]);
   }
-
-  await Promise.all([
-    fuenteProductos.refrescar(),
-    fuenteVentas.refrescar(),
-    fuenteClientes.refrescar(),
-  ]);
 }
 
 export async function actualizarEstadoVenta(id: string, estado: Venta["estado"]): Promise<void> {
@@ -513,7 +563,7 @@ export async function eliminarCliente(id: string): Promise<void> {
     return;
   }
   await rest.eliminar("clientes", id);
-  await fuenteClientes.refrescar();
+  fuenteClientes.aplicarLocal((d) => d.filter((c) => c.id !== id));
 }
 
 /**
@@ -546,7 +596,16 @@ export async function unirClientes(destino: Cliente, duplicados: Cliente[]): Pro
     telefono,
   });
   await Promise.all(duplicados.map((c) => rest.eliminar("clientes", c.id)));
-  await fuenteClientes.refrescar();
+  const idsDuplicados = new Set(duplicados.map((c) => c.id));
+  fuenteClientes.aplicarLocal((d) =>
+    d
+      .filter((c) => !idsDuplicados.has(c.id))
+      .map((c) =>
+        c.id === destino.id
+          ? { ...c, pedidos, totalGastado, ultimoPedido, creadoEn, telefono }
+          : c
+      )
+  );
 }
 
 /** Elimina una venta del historial (no repone stock ni ajusta clientes). */
@@ -558,7 +617,7 @@ export async function eliminarVenta(id: string): Promise<void> {
     return;
   }
   await rest.eliminar("ventas", id);
-  await fuenteVentas.refrescar();
+  fuenteVentas.aplicarLocal((d) => d.filter((v) => v.id !== id));
 }
 
 /** Actualiza campos de una venta (estado, pagado, fechaCobro, etc.). */
@@ -573,5 +632,5 @@ export async function actualizarVenta(id: string, datos: Partial<VentaInput>): P
     return;
   }
   await rest.actualizar("ventas", id, datos as Record<string, unknown>);
-  await fuenteVentas.refrescar();
+  fuenteVentas.aplicarLocal((d) => d.map((v) => (v.id === id ? { ...v, ...datos } : v)));
 }

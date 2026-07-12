@@ -139,6 +139,39 @@ export async function actualizar(coleccion: string, id: string, datos: Campos): 
   if (!resp.ok) throw new Error(await mensajeError(resp, `actualizar ${coleccion}/${id}`));
 }
 
+/**
+ * Consulta documentos donde campo == valor (índice automático de Firestore).
+ * Devuelve solo los documentos coincidentes: cuesta 1 lectura por resultado,
+ * en lugar de leer la colección completa.
+ */
+export async function consultarPorCampo<T>(
+  coleccion: string,
+  campo: string,
+  valor: string,
+  limite = 5
+): Promise<T[]> {
+  const resp = await fetch(`${BASE}:runQuery?key=${KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: coleccion }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: campo },
+            op: "EQUAL",
+            value: { stringValue: valor },
+          },
+        },
+        limit: limite,
+      },
+    }),
+  });
+  if (!resp.ok) throw new Error(`Firestore ${resp.status} al consultar ${coleccion}.${campo}`);
+  const filas = (await resp.json()) as { document?: DocREST }[];
+  return filas.filter((f) => f.document).map((f) => mapearDoc<T>(f.document as DocREST));
+}
+
 export async function eliminar(coleccion: string, id: string): Promise<void> {
   const resp = await fetch(`${BASE}/${coleccion}/${id}?key=${KEY}`, { method: "DELETE" });
   if (!resp.ok) throw new Error(await mensajeError(resp, `eliminar ${coleccion}/${id}`));
