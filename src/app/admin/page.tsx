@@ -8,6 +8,7 @@ import { FormularioVentaManual } from "@/components/admin/FormularioVentaManual"
 import { CuentasPorCobrar } from "@/components/admin/CuentasPorCobrar";
 import { PanelGastos } from "@/components/admin/PanelGastos";
 import { TasaCambio } from "@/components/admin/TasaCambio";
+import { ListaWhatsApp } from "@/components/admin/ListaWhatsApp";
 import { ResumenFinanciero } from "@/components/admin/ResumenFinanciero";
 import { StatCard } from "@/components/admin/StatCard";
 import { TablaClientes } from "@/components/admin/TablaClientes";
@@ -23,6 +24,7 @@ import {
   IconoMenu,
   IconoOjo,
   IconoRecibo,
+  IconoWhatsApp,
   IconoSalir,
   IconoUsuarios,
 } from "@/components/icons";
@@ -68,6 +70,7 @@ export default function PaginaAdmin() {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [formAbierto, setFormAbierto] = useState(false);
+  const [listaWaAbierta, setListaWaAbierta] = useState(false);
   const [productoEnEdicion, setProductoEnEdicion] = useState<Producto | null>(null);
   const [ventaManualAbierta, setVentaManualAbierta] = useState(false);
   const [sembrando, setSembrando] = useState(false);
@@ -353,12 +356,16 @@ export default function PaginaAdmin() {
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
                   Control de productos ({productos.length})
                 </h2>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   {productos.length === 0 && (
                     <Boton variante="vidrio" onClick={cargarCatalogoEjemplo} disabled={sembrando}>
                       {sembrando ? "Cargando…" : "Cargar catálogo de ejemplo"}
                     </Boton>
                   )}
+                  <Boton variante="vidrio" onClick={() => setListaWaAbierta(true)}>
+                    <IconoWhatsApp className="h-4 w-4" />
+                    Lista para WhatsApp
+                  </Boton>
                   <Boton onClick={abrirCrear}>
                     <IconoMas className="h-4 w-4" />
                     Nuevo producto
@@ -434,6 +441,11 @@ export default function PaginaAdmin() {
         abierto={ventaManualAbierta}
         productos={productos}
         onCerrar={() => setVentaManualAbierta(false)}
+      />
+      <ListaWhatsApp
+        abierto={listaWaAbierta}
+        productos={productos}
+        onCerrar={() => setListaWaAbierta(false)}
       />
     </div>
   );
