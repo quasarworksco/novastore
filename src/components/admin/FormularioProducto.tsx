@@ -3,7 +3,14 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconoBasura, IconoCerrar, IconoCheck, IconoSubir } from "@/components/icons";
+import {
+  IconoBasura,
+  IconoCerrar,
+  IconoCheck,
+  IconoMas,
+  IconoMenos,
+  IconoSubir,
+} from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { Campo, CampoArea } from "@/components/ui/Campo";
 import { UMBRAL_MARGEN_BAJO } from "@/lib/finance";
@@ -68,14 +75,33 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
   const sugerencias = Array.from(new Set([...CATEGORIAS_BASE, ...categorias])).sort();
 
   const [borrador, setBorrador] = useState<Borrador>(borradorVacio);
+  const [cantidadSumar, setCantidadSumar] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const inputArchivo = useRef<HTMLInputElement>(null);
 
+  /** Ajusta el stock sumando (o restando) un delta, sin bajar de 0. */
+  function ajustarStock(delta: number) {
+    setBorrador((prev) => {
+      const actual = parseInt(prev.stock, 10) || 0;
+      return { ...prev, stock: String(Math.max(0, actual + delta)) };
+    });
+  }
+
+  /** Suma la cantidad escrita en el campo "Cantidad a agregar". */
+  function sumarCantidad() {
+    const n = parseInt(cantidadSumar, 10);
+    if (n > 0) {
+      ajustarStock(n);
+      setCantidadSumar("");
+    }
+  }
+
   useEffect(() => {
     if (!abierto) return;
     setError("");
+    setCantidadSumar("");
     setBorrador(
       producto
         ? {
@@ -253,14 +279,77 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Campo
-                etiqueta="Stock (unidades)"
-                type="number"
-                min={0}
-                step="1"
-                value={borrador.stock}
-                onChange={(e) => actualizar("stock", e.target.value)}
-              />
+              {/* Control de stock: número editable + botones para sumar rápido */}
+              <div className="space-y-2">
+                <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                  Stock (unidades)
+                </span>
+                <div className="flex items-stretch gap-2">
+                  <button
+                    type="button"
+                    onClick={() => ajustarStock(-1)}
+                    aria-label="Restar una unidad"
+                    className="grid w-11 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100"
+                  >
+                    <IconoMenos className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={borrador.stock}
+                    onChange={(e) => actualizar("stock", e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-center text-lg font-bold text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => ajustarStock(1)}
+                    aria-label="Sumar una unidad"
+                    className="grid w-11 shrink-0 place-items-center rounded-2xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-100"
+                  >
+                    <IconoMas className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Sumar una cantidad al llegar mercancía nueva */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="Cantidad a agregar"
+                    value={cantidadSumar}
+                    onChange={(e) => setCantidadSumar(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        sumarCantidad();
+                      }
+                    }}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                  <button
+                    type="button"
+                    onClick={sumarCantidad}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                  >
+                    <IconoMas className="h-4 w-4" />
+                    Sumar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {[5, 10, 12, 24].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => ajustarStock(n)}
+                      className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-blue-300 hover:text-blue-700"
+                    >
+                      +{n}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex flex-col justify-end gap-2 pb-2">
                 <label className="flex cursor-pointer items-center gap-3">
                   <input
