@@ -609,15 +609,42 @@ export async function unirClientes(destino: Cliente, duplicados: Cliente[]): Pro
 }
 
 /** Elimina una venta del historial (no repone stock ni ajusta clientes). */
-export async function eliminarVenta(id: string): Promise<void> {
+/**
+ * Elimina una venta del historial y devuelve al stock las unidades de
+ * cada producto vendido (si el producto aún existe en el catálogo).
+ */
+export async function eliminarVenta(venta: Venta): Promise<void> {
+  const ahora = Date.now();
+
   if (modoDemo) {
     const st = cargarDemo();
-    st.ventas = st.ventas.filter((v) => v.id !== id);
+    st.ventas = st.ventas.filter((v) => v.id !== venta.id);
+    for (const item of venta.items) {
+      const p = st.productos.find((x) => x.id === item.productoId);
+      if (p) p.stock += item.cantidad;
+    }
     notificarDemo();
     return;
   }
-  await rest.eliminar("ventas", id);
-  fuenteVentas.aplicarLocal((d) => d.filter((v) => v.id !== id));
+
+  await rest.eliminar("ventas", venta.id);
+  fuenteVentas.aplicarLocal((d) => d.filter((v) => v.id !== venta.id));
+
+  // Reponer stock de cada ítem de la venta eliminada.
+  await Promise.all(
+    venta.items.map(async (item) => {
+      const p = await rest.obtener<Producto>("productos", item.productoId).catch(() => null);
+      if (p) {
+        const nuevoStock = p.stock + item.cantidad;
+        await rest
+          .actualizar("productos", item.productoId, { stock: nuevoStock, actualizadoEn: ahora })
+          .catch(() => undefined);
+        fuenteProductos.aplicarLocal((d) =>
+          d.map((x) => (x.id === item.productoId ? { ...x, stock: nuevoStock } : x))
+        );
+      }
+    })
+  );
 }
 
 /** Actualiza campos de una venta (estado, pagado, fechaCobro, etc.). */

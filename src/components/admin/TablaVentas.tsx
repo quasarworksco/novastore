@@ -26,8 +26,13 @@ function gananciaVenta(v: Venta): number {
 export function TablaVentas({ ventas }: { ventas: Venta[] }) {
   async function confirmarEliminar(v: Venta) {
     const detalle = `${v.cliente.nombre || "cliente"} — ${formatoMoneda(v.total)}`;
-    if (window.confirm(`¿Seguro que quieres eliminar esta venta del historial?\n\n${detalle}\n\nEsta acción no se puede deshacer.`)) {
-      await eliminarVenta(v.id);
+    const unidades = v.items.reduce((a, i) => a + i.cantidad, 0);
+    if (
+      window.confirm(
+        `¿Seguro que quieres eliminar esta venta del historial?\n\n${detalle}\n\nLas ${unidades} unidad(es) vendidas volverán al stock de sus productos. Esta acción no se puede deshacer.`
+      )
+    ) {
+      await eliminarVenta(v);
     }
   }
 
