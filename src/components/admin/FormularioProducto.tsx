@@ -15,7 +15,7 @@ import { Boton } from "@/components/ui/Boton";
 import { Campo, CampoArea } from "@/components/ui/Campo";
 import { UMBRAL_MARGEN_BAJO } from "@/lib/finance";
 import { formatoMoneda, formatoPorcentaje } from "@/lib/format";
-import { subirImagen } from "@/lib/cloudinary";
+import { subirImagen, subirImagenDesdeUrl } from "@/lib/cloudinary";
 import { actualizarProducto, crearProducto } from "@/lib/store";
 import type { Producto } from "@/lib/types";
 
@@ -76,6 +76,7 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
 
   const [borrador, setBorrador] = useState<Borrador>(borradorVacio);
   const [cantidadSumar, setCantidadSumar] = useState("");
+  const [urlImagen, setUrlImagen] = useState("");
   const [subiendo, setSubiendo] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -102,6 +103,7 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
     if (!abierto) return;
     setError("");
     setCantidadSumar("");
+    setUrlImagen("");
     setBorrador(
       producto
         ? {
@@ -143,6 +145,21 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
     } finally {
       setSubiendo(false);
       if (inputArchivo.current) inputArchivo.current.value = "";
+    }
+  }
+
+  async function agregarPorUrl() {
+    if (subiendo || !urlImagen.trim()) return;
+    setSubiendo(true);
+    setError("");
+    try {
+      const url = await subirImagenDesdeUrl(urlImagen);
+      setBorrador((prev) => ({ ...prev, imagenes: [...prev.imagenes, url] }));
+      setUrlImagen("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo agregar la imagen por enlace.");
+    } finally {
+      setSubiendo(false);
     }
   }
 
@@ -426,6 +443,37 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
                 hidden
                 onChange={(e) => cargarImagenes(e.target.files)}
               />
+
+              {/* Agregar imagen pegando su enlace (URL) */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="url"
+                  inputMode="url"
+                  placeholder="… o pega el enlace de una imagen (https://…)"
+                  value={urlImagen}
+                  onChange={(e) => setUrlImagen(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      agregarPorUrl();
+                    }
+                  }}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+                <button
+                  type="button"
+                  onClick={agregarPorUrl}
+                  disabled={subiendo || !urlImagen.trim()}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-40"
+                >
+                  <IconoMas className="h-4 w-4" />
+                  Agregar
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Puedes subir fotos desde el dispositivo o pegar el enlace de una imagen de
+                internet; la guardamos en tu almacenamiento para que no se pierda.
+              </p>
             </div>
 
             {error && (
