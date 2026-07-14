@@ -6,6 +6,7 @@ import { IconoBillete, IconoImagen, IconoMas } from "@/components/icons";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
 import { formatoBs, formatoMoneda } from "@/lib/format";
+import { imagenOptimizada } from "@/lib/imagen";
 import type { Producto } from "@/lib/types";
 
 interface Props {
@@ -37,7 +38,7 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
       >
         {producto.imagenes[0] ? (
           <Image
-            src={producto.imagenes[0]}
+            src={imagenOptimizada(producto.imagenes[0], 500)}
             alt={producto.nombre}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"

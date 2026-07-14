@@ -18,6 +18,7 @@ import { Campo } from "@/components/ui/Campo";
 import { useCarrito } from "@/lib/cart-context";
 import { precioSegunMetodo } from "@/lib/finance";
 import { formatoBs, formatoMoneda } from "@/lib/format";
+import { imagenOptimizada } from "@/lib/imagen";
 import { registrarVenta, suscribirConfig } from "@/lib/store";
 import type { MetodoPago } from "@/lib/types";
 import { enlacePedidoWhatsApp } from "@/lib/whatsapp";
@@ -141,7 +142,7 @@ export function CartDrawer() {
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                         {producto.imagenes[0] && (
                           <Image
-                            src={producto.imagenes[0]}
+                            src={imagenOptimizada(producto.imagenes[0], 160)}
                             alt={producto.nombre}
                             fill
                             sizes="64px"

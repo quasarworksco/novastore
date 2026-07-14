@@ -16,6 +16,7 @@ import { Campo, CampoArea } from "@/components/ui/Campo";
 import { UMBRAL_MARGEN_BAJO } from "@/lib/finance";
 import { formatoMoneda, formatoPorcentaje } from "@/lib/format";
 import { subirImagen, subirImagenDesdeUrl } from "@/lib/cloudinary";
+import { imagenOptimizada } from "@/lib/imagen";
 import { actualizarProducto, crearProducto } from "@/lib/store";
 import type { Producto } from "@/lib/types";
 
@@ -401,7 +402,7 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
                     className="group relative h-20 w-20 overflow-hidden rounded-2xl border border-slate-200"
                   >
                     <Image
-                      src={url}
+                      src={imagenOptimizada(url, 160)}
                       alt={`Imagen ${i + 1}`}
                       fill
                       sizes="80px"
