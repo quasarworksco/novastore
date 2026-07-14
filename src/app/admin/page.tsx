@@ -440,6 +440,7 @@ export default function PaginaAdmin() {
       <FormularioVentaManual
         abierto={ventaManualAbierta}
         productos={productos}
+        clientes={clientes}
         onCerrar={() => setVentaManualAbierta(false)}
       />
       <ListaWhatsApp
