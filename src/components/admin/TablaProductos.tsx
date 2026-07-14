@@ -14,6 +14,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Insignia } from "@/components/ui/Insignia";
 import { margenNeto, porcentajeGanancia, UMBRAL_MARGEN_BAJO } from "@/lib/finance";
 import { formatoMoneda, formatoPorcentaje } from "@/lib/format";
+import { imagenOptimizada } from "@/lib/imagen";
 import type { Producto } from "@/lib/types";
 
 interface Props {
@@ -83,7 +84,7 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
                         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-slate-100">
                           {p.imagenes[0] ? (
                             <Image
-                              src={p.imagenes[0]}
+                              src={imagenOptimizada(p.imagenes[0], 120)}
                               alt={p.nombre}
                               fill
                               sizes="44px"

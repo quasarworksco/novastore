@@ -14,6 +14,7 @@ import { Boton } from "@/components/ui/Boton";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
 import { formatoBs, formatoMoneda } from "@/lib/format";
+import { imagenOptimizada } from "@/lib/imagen";
 import type { Producto } from "@/lib/types";
 
 interface Props {
@@ -71,7 +72,7 @@ export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
                 >
                   {imagenes[indice] && (
                     <Image
-                      src={imagenes[indice]}
+                      src={imagenOptimizada(imagenes[indice], 900)}
                       alt={producto.nombre}
                       fill
                       sizes="(max-width: 640px) 100vw, 50vw"
