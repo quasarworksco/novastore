@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   IconoAlerta,
@@ -9,6 +9,7 @@ import {
   IconoCheck,
   IconoMas,
   IconoReloj,
+  IconoUsuarios,
 } from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
@@ -53,6 +54,33 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
     return d !== null && d < 0;
   });
   const totalVencido = vencidas.reduce((acc, v) => acc + saldoPendiente(v), 0);
+
+  // Total adeudado agrupado por cliente.
+  const porCliente = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { nombre: string; telefono: string; saldo: number; deudas: number; proximaFecha: number | null }
+    >();
+    for (const v of deudas) {
+      const clave = (v.cliente.telefono || v.cliente.nombre || "—").toLowerCase();
+      const actual = mapa.get(clave) ?? {
+        nombre: v.cliente.nombre || "—",
+        telefono: v.cliente.telefono || "",
+        saldo: 0,
+        deudas: 0,
+        proximaFecha: null,
+      };
+      actual.saldo += saldoPendiente(v);
+      actual.deudas += 1;
+      if (v.fechaCobro !== null) {
+        actual.proximaFecha =
+          actual.proximaFecha === null ? v.fechaCobro : Math.min(actual.proximaFecha, v.fechaCobro);
+      }
+      if (!actual.telefono && v.cliente.telefono) actual.telefono = v.cliente.telefono;
+      mapa.set(clave, actual);
+    }
+    return Array.from(mapa.values()).sort((a, b) => b.saldo - a.saldo);
+  }, [deudas]);
 
   function abrirAbono(v: Venta) {
     setVentaEnAbono(v);
@@ -114,6 +142,57 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
         />
       </div>
 
+      {/* Total adeudado por cliente */}
+      {porCliente.length > 0 && (
+        <section className="space-y-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-600">
+            <IconoUsuarios className="h-4 w-4 text-blue-500" />
+            Total adeudado por cliente
+          </h3>
+          <GlassCard className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[520px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3.5 font-medium">Cliente</th>
+                    <th className="px-3 py-3.5 text-right font-medium">Deudas</th>
+                    <th className="px-3 py-3.5 font-medium">Próximo cobro</th>
+                    <th className="px-5 py-3.5 text-right font-medium">Total adeudado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {porCliente.map((c) => {
+                    const dias = diasRestantes(c.proximaFecha);
+                    const est = estadoCobro(dias);
+                    return (
+                      <tr
+                        key={`${c.nombre}-${c.telefono}`}
+                        className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
+                      >
+                        <td className="px-5 py-3">
+                          <p className="font-medium text-slate-900">{c.nombre}</p>
+                          {c.telefono && <p className="text-xs text-slate-500">{c.telefono}</p>}
+                        </td>
+                        <td className="px-3 py-3 text-right text-slate-600">{c.deudas}</td>
+                        <td className="px-3 py-3">
+                          <Insignia tono={est.tono}>{est.texto}</Insignia>
+                        </td>
+                        <td className="px-5 py-3 text-right text-base font-bold text-slate-900">
+                          {formatoMoneda(c.saldo)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </GlassCard>
+        </section>
+      )}
+
+      <h3 className="pt-2 text-sm font-semibold uppercase tracking-wider text-slate-600">
+        Detalle de deudas
+      </h3>
       <GlassCard className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-sm">

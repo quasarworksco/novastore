@@ -9,11 +9,12 @@ import { Insignia } from "@/components/ui/Insignia";
 import { precioSegunMetodo } from "@/lib/finance";
 import { formatoMoneda } from "@/lib/format";
 import { registrarVenta } from "@/lib/store";
-import type { MetodoPago, Producto } from "@/lib/types";
+import type { Cliente, MetodoPago, Producto } from "@/lib/types";
 
 interface Props {
   abierto: boolean;
   productos: Producto[];
+  clientes: Cliente[];
   onCerrar: () => void;
 }
 
@@ -22,7 +23,7 @@ interface Linea {
   cantidad: number;
 }
 
-export function FormularioVentaManual({ abierto, productos, onCerrar }: Props) {
+export function FormularioVentaManual({ abierto, productos, clientes, onCerrar }: Props) {
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("base");
   const [nombre, setNombre] = useState("");
@@ -65,6 +66,13 @@ export function FormularioVentaManual({ abierto, productos, onCerrar }: Props) {
       return [...prev, { producto: p, cantidad: 1 }];
     });
     setSeleccion("");
+  }
+
+  /** Al escribir/elegir un nombre, autocompleta el teléfono si el cliente ya existe. */
+  function alCambiarNombre(valor: string) {
+    setNombre(valor);
+    const existente = clientes.find((c) => c.nombre.trim().toLowerCase() === valor.trim().toLowerCase());
+    if (existente?.telefono) setTelefono(existente.telefono);
   }
 
   function cambiar(id: string, cantidad: number) {
@@ -225,13 +233,24 @@ export function FormularioVentaManual({ abierto, productos, onCerrar }: Props) {
               ))}
             </div>
 
-            {/* Cliente */}
+            {/* Cliente: escribe uno nuevo o elige uno ya guardado */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Campo
                 etiqueta="Nombre del cliente *"
+                list="clientes-guardados"
+                placeholder="Escribe o elige un cliente"
+                autoComplete="off"
                 value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                onChange={(e) => alCambiarNombre(e.target.value)}
               />
+              <datalist id="clientes-guardados">
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.nombre}>
+                    {c.telefono ? `${c.telefono} · ` : ""}
+                    {c.pedidos} pedido{c.pedidos === 1 ? "" : "s"}
+                  </option>
+                ))}
+              </datalist>
               <Campo
                 etiqueta="Teléfono (opcional)"
                 inputMode="tel"
@@ -239,6 +258,11 @@ export function FormularioVentaManual({ abierto, productos, onCerrar }: Props) {
                 onChange={(e) => setTelefono(e.target.value)}
               />
             </div>
+            {clientes.length > 0 && (
+              <p className="-mt-2 text-[11px] text-slate-400">
+                Toca el campo de nombre para elegir un cliente ya registrado.
+              </p>
+            )}
 
             {/* Fiado */}
             <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
