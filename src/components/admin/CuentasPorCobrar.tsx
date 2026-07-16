@@ -8,8 +8,10 @@ import {
   IconoCerrar,
   IconoCheck,
   IconoMas,
+  IconoRecibo,
   IconoReloj,
   IconoUsuarios,
+  IconoWhatsApp,
 } from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
@@ -43,6 +45,8 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
   const [montoAbono, setMontoAbono] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [respaldoAbierto, setRespaldoAbierto] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   const deudas = ventas
     .filter((v) => v.fiado && !v.pagado && v.estado !== "cancelada")
@@ -81,6 +85,48 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
     }
     return Array.from(mapa.values()).sort((a, b) => b.saldo - a.saldo);
   }, [deudas]);
+
+  /** Monto compacto para texto: $65 o $65,50 (sin ",00" innecesario). */
+  function monto(valor: number): string {
+    return `$${valor.toLocaleString("es-VE", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  }
+
+  // Texto de respaldo con nombre + monto de cada cliente que debe.
+  const textoRespaldo = useMemo(() => {
+    const fecha = new Date().toLocaleDateString("es-VE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+    const lineas = porCliente.map((c) => `- ${c.nombre}: ${monto(c.saldo)}`);
+    return [
+      "NOVASTORE - CUENTAS POR COBRAR",
+      `Al ${fecha}`,
+      "",
+      ...lineas,
+      "",
+      `Total por cobrar: ${monto(totalPorCobrar)}`,
+      `${porCliente.length} ${porCliente.length === 1 ? "cliente" : "clientes"}`,
+    ].join("\n");
+  }, [porCliente, totalPorCobrar]);
+
+  async function copiarRespaldo() {
+    try {
+      await navigator.clipboard.writeText(textoRespaldo);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      const area = document.getElementById("respaldo-deudas-texto") as HTMLTextAreaElement | null;
+      area?.select();
+    }
+  }
+
+  function enviarRespaldoWhatsApp() {
+    window.open(`https://wa.me/?text=${encodeURIComponent(textoRespaldo)}`, "_blank", "noopener");
+  }
 
   function abrirAbono(v: Venta) {
     setVentaEnAbono(v);
@@ -145,10 +191,16 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
       {/* Total adeudado por cliente */}
       {porCliente.length > 0 && (
         <section className="space-y-3">
-          <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-600">
-            <IconoUsuarios className="h-4 w-4 text-blue-500" />
-            Total adeudado por cliente
-          </h3>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-600">
+              <IconoUsuarios className="h-4 w-4 text-blue-500" />
+              Total adeudado por cliente
+            </h3>
+            <Boton variante="vidrio" onClick={() => setRespaldoAbierto(true)}>
+              <IconoRecibo className="h-4 w-4" />
+              Copiar respaldo
+            </Boton>
+          </div>
           <GlassCard className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-sm">
@@ -274,6 +326,66 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
           </p>
         )}
       </GlassCard>
+
+      {/* Modal de respaldo de deudas */}
+      <AnimatePresence>
+        {respaldoAbierto && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setRespaldoAbierto(false)}
+            className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ type: "spring", bounce: 0.2, duration: 0.45 }}
+              onClick={(e) => e.stopPropagation()}
+              className="my-8 w-full max-w-lg space-y-4 rounded-3xl border border-glass-border bg-white p-6 shadow-glass"
+            >
+              <div className="flex items-center justify-between">
+                <h3 className="flex items-center gap-2 text-base font-bold text-slate-900">
+                  <IconoRecibo className="h-5 w-5 text-blue-600" />
+                  Respaldo de cuentas por cobrar
+                </h3>
+                <button
+                  onClick={() => setRespaldoAbierto(false)}
+                  aria-label="Cerrar"
+                  className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                >
+                  <IconoCerrar className="h-4 w-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                Lista de quién te debe con nombre y monto. Cópiala para guardarla en tu teléfono o
+                envíatela por WhatsApp.
+              </p>
+
+              <textarea
+                id="respaldo-deudas-texto"
+                readOnly
+                value={textoRespaldo}
+                rows={Math.min(14, porCliente.length + 6)}
+                className="w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-relaxed text-slate-800 outline-none focus:border-blue-400"
+              />
+
+              <div className="flex flex-wrap justify-end gap-2">
+                <Boton variante="vidrio" onClick={copiarRespaldo} disabled={porCliente.length === 0}>
+                  <IconoCheck className="h-4 w-4" />
+                  {copiado ? "¡Copiado!" : "Copiar texto"}
+                </Boton>
+                <Boton onClick={enviarRespaldoWhatsApp} disabled={porCliente.length === 0}>
+                  <IconoWhatsApp className="h-4 w-4" />
+                  Enviar por WhatsApp
+                </Boton>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal de abono */}
       <AnimatePresence>
