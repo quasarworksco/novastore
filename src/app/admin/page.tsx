@@ -16,6 +16,7 @@ import { TablaProductos } from "@/components/admin/TablaProductos";
 import { TablaVentas } from "@/components/admin/TablaVentas";
 import {
   IconoBillete,
+  IconoBuscar,
   IconoCaja,
   IconoCerrar,
   IconoDolar,
@@ -74,6 +75,7 @@ export default function PaginaAdmin() {
   const [productoEnEdicion, setProductoEnEdicion] = useState<Producto | null>(null);
   const [ventaManualAbierta, setVentaManualAbierta] = useState(false);
   const [sembrando, setSembrando] = useState(false);
+  const [busquedaProd, setBusquedaProd] = useState("");
 
   useEffect(() => {
     setAutenticado(sesionValida());
@@ -108,6 +110,15 @@ export default function PaginaAdmin() {
     () => ventas.filter((v) => v.fiado && !v.pagado && v.estado !== "cancelada"),
     [ventas]
   );
+
+  const productosFiltrados = useMemo(() => {
+    const q = busquedaProd.trim().toLowerCase();
+    if (!q) return productos;
+    return productos.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) || (p.categoria ?? "").toLowerCase().includes(q)
+    );
+  }, [productos, busquedaProd]);
 
   function abrirCrear() {
     setProductoEnEdicion(null);
@@ -373,11 +384,33 @@ export default function PaginaAdmin() {
                 </div>
               </div>
               <ResumenFinanciero productos={productos} />
-              <TablaProductos
-                productos={productos}
-                onEditar={abrirEditar}
-                onEliminar={confirmarEliminar}
-              />
+              <div className="relative">
+                <IconoBuscar className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="search"
+                  value={busquedaProd}
+                  onChange={(e) => setBusquedaProd(e.target.value)}
+                  placeholder="Buscar producto por nombre o categoría…"
+                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                />
+              </div>
+              {busquedaProd.trim() && (
+                <p className="-mt-4 text-xs text-slate-400">
+                  {productosFiltrados.length}{" "}
+                  {productosFiltrados.length === 1 ? "producto encontrado" : "productos encontrados"}
+                </p>
+              )}
+              {productosFiltrados.length === 0 && busquedaProd.trim() ? (
+                <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-500">
+                  No se encontraron productos para «{busquedaProd.trim()}».
+                </p>
+              ) : (
+                <TablaProductos
+                  productos={productosFiltrados}
+                  onEditar={abrirEditar}
+                  onEliminar={confirmarEliminar}
+                />
+              )}
             </>
           )}
 
