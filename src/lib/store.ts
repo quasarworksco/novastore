@@ -428,6 +428,23 @@ export async function eliminarProducto(id: string): Promise<void> {
  * busca SOLO por nombre: nunca por teléfono vacío, porque eso hacía que
  * todas las ventas sin teléfono se acumularan en un mismo cliente.
  */
+/**
+ * Reintenta una operación de red con espera creciente antes de rendirse.
+ * Útil para que un corte breve de conexión no deje datos a medias.
+ */
+async function reintentar<T>(fn: () => Promise<T>, intentos = 3, esperaMs = 700): Promise<T> {
+  let ultimoError: unknown;
+  for (let i = 0; i < intentos; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      ultimoError = e;
+      if (i < intentos - 1) await new Promise((r) => setTimeout(r, esperaMs * (i + 1)));
+    }
+  }
+  throw ultimoError;
+}
+
 function buscarClienteExistente(
   clientes: Cliente[],
   nombre: string,
@@ -555,6 +572,25 @@ export async function abonarVenta(venta: Venta, monto: number): Promise<void> {
 
 /* ── Gestión de clientes ─────────────────────────────────────────── */
 
+/** Edita el nombre y/o teléfono de un cliente (por si quedó mal escrito). */
+export async function actualizarCliente(
+  id: string,
+  datos: { nombre: string; telefono: string }
+): Promise<void> {
+  const cambios = { nombre: datos.nombre.trim(), telefono: datos.telefono.replace(/\D/g, "") };
+  if (modoDemo) {
+    const st = cargarDemo();
+    const c = st.clientes.find((x) => x.id === id);
+    if (c) {
+      Object.assign(c, cambios);
+      notificarDemo();
+    }
+    return;
+  }
+  await rest.actualizar("clientes", id, cambios);
+  fuenteClientes.aplicarLocal((d) => d.map((c) => (c.id === id ? { ...c, ...cambios } : c)));
+}
+
 export async function eliminarCliente(id: string): Promise<void> {
   if (modoDemo) {
     const st = cargarDemo();
@@ -636,18 +672,22 @@ export async function eliminarVenta(venta: Venta): Promise<void> {
     return;
   }
 
-  await rest.eliminar("ventas", venta.id);
+  // La venta se borra con reintentos: si falla del todo, no seguimos
+  // (no queremos reponer stock ni tocar al cliente de una venta que sigue viva).
+  await reintentar(() => rest.eliminar("ventas", venta.id));
   fuenteVentas.aplicarLocal((d) => d.filter((v) => v.id !== venta.id));
 
-  // Reponer stock de cada ítem de la venta eliminada.
+  // Reponer stock de cada ítem de la venta eliminada (con reintentos).
   await Promise.all(
     venta.items.map(async (item) => {
-      const p = await rest.obtener<Producto>("productos", item.productoId).catch(() => null);
+      const p = await reintentar(() => rest.obtener<Producto>("productos", item.productoId)).catch(
+        () => null
+      );
       if (p) {
         const nuevoStock = p.stock + item.cantidad;
-        await rest
-          .actualizar("productos", item.productoId, { stock: nuevoStock, actualizadoEn: ahora })
-          .catch(() => undefined);
+        await reintentar(() =>
+          rest.actualizar("productos", item.productoId, { stock: nuevoStock, actualizadoEn: ahora })
+        ).catch(() => undefined);
         fuenteProductos.aplicarLocal((d) =>
           d.map((x) => (x.id === item.productoId ? { ...x, stock: nuevoStock } : x))
         );
@@ -655,21 +695,24 @@ export async function eliminarVenta(venta: Venta): Promise<void> {
     })
   );
 
-  // Descontar la venta del cliente (consulta puntual, sin releer todo).
-  const candidatos = telefono
-    ? await rest.consultarPorCampo<Cliente>("clientes", "telefono", telefono).catch(() => [])
-    : await rest
-        .consultarPorCampo<Cliente>("clientes", "nombre", venta.cliente.nombre.trim())
-        .catch(() => [] as Cliente[]);
+  // Descontar la venta del cliente (consulta puntual, sin releer todo), con
+  // reintentos para que un corte breve no deje el total del cliente inflado.
+  const candidatos = await reintentar(() =>
+    telefono
+      ? rest.consultarPorCampo<Cliente>("clientes", "telefono", telefono)
+      : rest.consultarPorCampo<Cliente>("clientes", "nombre", venta.cliente.nombre.trim())
+  ).catch(() => [] as Cliente[]);
   const cli = buscarClienteExistente(candidatos, venta.cliente.nombre, telefono);
   if (cli) {
     const pedidos = cli.pedidos - 1;
     const totalGastado = Math.max(0, cli.totalGastado - venta.total);
     if (pedidos <= 0) {
-      await rest.eliminar("clientes", cli.id).catch(() => undefined);
+      await reintentar(() => rest.eliminar("clientes", cli.id)).catch(() => undefined);
       fuenteClientes.aplicarLocal((d) => d.filter((c) => c.id !== cli.id));
     } else {
-      await rest.actualizar("clientes", cli.id, { pedidos, totalGastado }).catch(() => undefined);
+      await reintentar(() => rest.actualizar("clientes", cli.id, { pedidos, totalGastado })).catch(
+        () => undefined
+      );
       fuenteClientes.aplicarLocal((d) =>
         d.map((c) => (c.id === cli.id ? { ...c, pedidos, totalGastado } : c))
       );
