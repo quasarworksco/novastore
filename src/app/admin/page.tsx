@@ -9,6 +9,7 @@ import { CuentasPorCobrar } from "@/components/admin/CuentasPorCobrar";
 import { PanelGastos } from "@/components/admin/PanelGastos";
 import { TasaCambio } from "@/components/admin/TasaCambio";
 import { ListaWhatsApp } from "@/components/admin/ListaWhatsApp";
+import { MasVendidos } from "@/components/admin/MasVendidos";
 import { ResumenFinanciero } from "@/components/admin/ResumenFinanciero";
 import { StatCard } from "@/components/admin/StatCard";
 import { TablaClientes } from "@/components/admin/TablaClientes";
@@ -343,6 +344,8 @@ export default function PaginaAdmin() {
               </section>
 
               <TasaCambio />
+
+              <MasVendidos ventas={ventas} />
 
               <ResumenFinanciero productos={productos} />
 

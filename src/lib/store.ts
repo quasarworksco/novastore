@@ -608,13 +608,16 @@ export async function unirClientes(destino: Cliente, duplicados: Cliente[]): Pro
   );
 }
 
-/** Elimina una venta del historial (no repone stock ni ajusta clientes). */
 /**
- * Elimina una venta del historial y devuelve al stock las unidades de
- * cada producto vendido (si el producto aún existe en el catálogo).
+ * Elimina una venta del historial y deja todo cuadrado:
+ *  - devuelve al stock las unidades de cada producto vendido (si aún existe),
+ *  - descuenta esa venta del cliente (un pedido menos y su monto del total
+ *    gastado). Si al cliente no le quedan pedidos, se elimina su registro,
+ *    reflejando que se creó a partir de sus ventas.
  */
 export async function eliminarVenta(venta: Venta): Promise<void> {
   const ahora = Date.now();
+  const telefono = venta.cliente.telefono.replace(/\D/g, "");
 
   if (modoDemo) {
     const st = cargarDemo();
@@ -622,6 +625,12 @@ export async function eliminarVenta(venta: Venta): Promise<void> {
     for (const item of venta.items) {
       const p = st.productos.find((x) => x.id === item.productoId);
       if (p) p.stock += item.cantidad;
+    }
+    const cli = buscarClienteExistente(st.clientes, venta.cliente.nombre, telefono);
+    if (cli) {
+      cli.pedidos -= 1;
+      cli.totalGastado = Math.max(0, cli.totalGastado - venta.total);
+      if (cli.pedidos <= 0) st.clientes = st.clientes.filter((c) => c.id !== cli.id);
     }
     notificarDemo();
     return;
@@ -645,6 +654,27 @@ export async function eliminarVenta(venta: Venta): Promise<void> {
       }
     })
   );
+
+  // Descontar la venta del cliente (consulta puntual, sin releer todo).
+  const candidatos = telefono
+    ? await rest.consultarPorCampo<Cliente>("clientes", "telefono", telefono).catch(() => [])
+    : await rest
+        .consultarPorCampo<Cliente>("clientes", "nombre", venta.cliente.nombre.trim())
+        .catch(() => [] as Cliente[]);
+  const cli = buscarClienteExistente(candidatos, venta.cliente.nombre, telefono);
+  if (cli) {
+    const pedidos = cli.pedidos - 1;
+    const totalGastado = Math.max(0, cli.totalGastado - venta.total);
+    if (pedidos <= 0) {
+      await rest.eliminar("clientes", cli.id).catch(() => undefined);
+      fuenteClientes.aplicarLocal((d) => d.filter((c) => c.id !== cli.id));
+    } else {
+      await rest.actualizar("clientes", cli.id, { pedidos, totalGastado }).catch(() => undefined);
+      fuenteClientes.aplicarLocal((d) =>
+        d.map((c) => (c.id === cli.id ? { ...c, pedidos, totalGastado } : c))
+      );
+    }
+  }
 }
 
 /** Actualiza campos de una venta (estado, pagado, fechaCobro, etc.). */
