@@ -459,41 +459,42 @@ function buscarClienteExistente(
   return porNombre();
 }
 
-export async function registrarVenta(venta: VentaInput): Promise<void> {
-  const ahora = Date.now();
-  const telefono = venta.cliente.telefono.replace(/\D/g, "");
-
-  if (modoDemo) {
-    const estado = cargarDemo();
-    estado.ventas.unshift({ ...venta, id: idDemo("venta"), creadoEn: ahora });
-    for (const item of venta.items) {
-      const p = estado.productos.find((x) => x.id === item.productoId);
-      if (p) p.stock = Math.max(0, p.stock - item.cantidad);
-    }
-    const existente = buscarClienteExistente(estado.clientes, venta.cliente.nombre, telefono);
-    if (existente) {
-      existente.pedidos += 1;
-      existente.totalGastado += venta.total;
-      existente.ultimoPedido = ahora;
-      if (!existente.telefono && telefono) existente.telefono = telefono;
-    } else {
-      estado.clientes.push({
-        id: idDemo("cli"),
-        nombre: venta.cliente.nombre,
-        telefono,
-        pedidos: 1,
-        totalGastado: venta.total,
-        creadoEn: ahora,
-        ultimoPedido: ahora,
-      });
-    }
-    notificarDemo();
-    return;
+/** Descuenta stock y registra la venta en el cliente (almacén demo). */
+function aplicarInventarioYClienteDemo(
+  estado: EstadoDemo,
+  venta: Pick<Venta, "items" | "cliente" | "total">,
+  telefono: string,
+  ahora: number
+) {
+  for (const item of venta.items) {
+    const p = estado.productos.find((x) => x.id === item.productoId);
+    if (p) p.stock = Math.max(0, p.stock - item.cantidad);
   }
+  const existente = buscarClienteExistente(estado.clientes, venta.cliente.nombre, telefono);
+  if (existente) {
+    existente.pedidos += 1;
+    existente.totalGastado += venta.total;
+    existente.ultimoPedido = ahora;
+    if (!existente.telefono && telefono) existente.telefono = telefono;
+  } else {
+    estado.clientes.push({
+      id: idDemo("cli"),
+      nombre: venta.cliente.nombre,
+      telefono,
+      pedidos: 1,
+      totalGastado: venta.total,
+      creadoEn: ahora,
+      ultimoPedido: ahora,
+    });
+  }
+}
 
-  const idVenta = await rest.crear("ventas", { ...venta, creadoEn: ahora });
-  fuenteVentas.aplicarLocal((d) => [{ ...venta, id: idVenta, creadoEn: ahora }, ...d]);
-
+/** Descuenta stock y registra la venta en el cliente (Firestore vía REST). */
+async function aplicarInventarioYCliente(
+  venta: Pick<Venta, "items" | "cliente" | "total">,
+  telefono: string,
+  ahora: number
+): Promise<void> {
   // Descontar stock (lectura-modificación-escritura por ítem).
   await Promise.all(
     venta.items.map(async (item) => {
@@ -551,8 +552,72 @@ export async function registrarVenta(venta: VentaInput): Promise<void> {
   }
 }
 
-export async function actualizarEstadoVenta(id: string, estado: Venta["estado"]): Promise<void> {
-  await actualizarVenta(id, { estado });
+export async function registrarVenta(venta: VentaInput): Promise<void> {
+  const ahora = Date.now();
+  const telefono = venta.cliente.telefono.replace(/\D/g, "");
+
+  // Los pedidos de la tienda entran «pendientes»: NO descuentan stock ni
+  // tocan al cliente hasta que el dueño los apruebe en el panel. Las ventas
+  // manuales sí se aplican de inmediato, como siempre.
+  const diferido = venta.estado === "pendiente";
+  const datos: VentaInput = { ...venta, inventarioDescontado: !diferido };
+
+  if (modoDemo) {
+    const estado = cargarDemo();
+    estado.ventas.unshift({ ...datos, id: idDemo("venta"), creadoEn: ahora });
+    if (!diferido) aplicarInventarioYClienteDemo(estado, venta, telefono, ahora);
+    notificarDemo();
+    return;
+  }
+
+  const idVenta = await rest.crear("ventas", { ...datos, creadoEn: ahora });
+  fuenteVentas.aplicarLocal((d) => [{ ...datos, id: idVenta, creadoEn: ahora }, ...d]);
+
+  if (!diferido) await aplicarInventarioYCliente(venta, telefono, ahora);
+}
+
+/**
+ * Aprueba un pedido pendiente de la tienda: descuenta el stock, registra la
+ * venta en el cliente y marca la venta como confirmada (o el estado dado).
+ */
+export async function aprobarVenta(
+  venta: Venta,
+  estadoFinal: Venta["estado"] = "confirmada"
+): Promise<void> {
+  const ahora = Date.now();
+  const telefono = venta.cliente.telefono.replace(/\D/g, "");
+  const cambios = { estado: estadoFinal, pagado: true, inventarioDescontado: true };
+
+  if (modoDemo) {
+    const st = cargarDemo();
+    const v = st.ventas.find((x) => x.id === venta.id);
+    if (v) {
+      if (v.inventarioDescontado === false) aplicarInventarioYClienteDemo(st, v, telefono, ahora);
+      Object.assign(v, cambios);
+      notificarDemo();
+    }
+    return;
+  }
+
+  if (venta.inventarioDescontado === false) {
+    await aplicarInventarioYCliente(venta, telefono, ahora);
+  }
+  await actualizarVenta(venta.id, cambios);
+}
+
+/** Rechaza un pedido pendiente: lo cancela sin tocar stock ni clientes. */
+export async function rechazarVenta(venta: Venta): Promise<void> {
+  await actualizarVenta(venta.id, { estado: "cancelada", pagado: false });
+}
+
+export async function actualizarEstadoVenta(venta: Venta, estado: Venta["estado"]): Promise<void> {
+  // Si un pedido pendiente (sin stock descontado) pasa a confirmada o
+  // entregada, equivale a aprobarlo: se descuenta inventario y cliente.
+  if (venta.inventarioDescontado === false && (estado === "confirmada" || estado === "entregada")) {
+    await aprobarVenta(venta, estado);
+    return;
+  }
+  await actualizarVenta(venta.id, { estado });
 }
 
 /**
@@ -654,19 +719,24 @@ export async function unirClientes(destino: Cliente, duplicados: Cliente[]): Pro
 export async function eliminarVenta(venta: Venta): Promise<void> {
   const ahora = Date.now();
   const telefono = venta.cliente.telefono.replace(/\D/g, "");
+  // Un pedido pendiente nunca descontó stock ni se sumó al cliente, así que
+  // al eliminarlo no hay nada que reponer ni descontar.
+  const descontada = venta.inventarioDescontado !== false;
 
   if (modoDemo) {
     const st = cargarDemo();
     st.ventas = st.ventas.filter((v) => v.id !== venta.id);
-    for (const item of venta.items) {
-      const p = st.productos.find((x) => x.id === item.productoId);
-      if (p) p.stock += item.cantidad;
-    }
-    const cli = buscarClienteExistente(st.clientes, venta.cliente.nombre, telefono);
-    if (cli) {
-      cli.pedidos -= 1;
-      cli.totalGastado = Math.max(0, cli.totalGastado - venta.total);
-      if (cli.pedidos <= 0) st.clientes = st.clientes.filter((c) => c.id !== cli.id);
+    if (descontada) {
+      for (const item of venta.items) {
+        const p = st.productos.find((x) => x.id === item.productoId);
+        if (p) p.stock += item.cantidad;
+      }
+      const cli = buscarClienteExistente(st.clientes, venta.cliente.nombre, telefono);
+      if (cli) {
+        cli.pedidos -= 1;
+        cli.totalGastado = Math.max(0, cli.totalGastado - venta.total);
+        if (cli.pedidos <= 0) st.clientes = st.clientes.filter((c) => c.id !== cli.id);
+      }
     }
     notificarDemo();
     return;
@@ -676,6 +746,8 @@ export async function eliminarVenta(venta: Venta): Promise<void> {
   // (no queremos reponer stock ni tocar al cliente de una venta que sigue viva).
   await reintentar(() => rest.eliminar("ventas", venta.id));
   fuenteVentas.aplicarLocal((d) => d.filter((v) => v.id !== venta.id));
+
+  if (!descontada) return;
 
   // Reponer stock de cada ítem de la venta eliminada (con reintentos).
   await Promise.all(

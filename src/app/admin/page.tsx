@@ -112,6 +112,12 @@ export default function PaginaAdmin() {
     [ventas]
   );
 
+  // Pedidos web esperando aprobación (aún no descuentan inventario).
+  const pedidosPendientes = useMemo(
+    () => ventas.filter((v) => v.estado === "pendiente" && v.inventarioDescontado === false),
+    [ventas]
+  );
+
   const productosFiltrados = useMemo(() => {
     const q = busquedaProd.trim().toLowerCase();
     if (!q) return productos;
@@ -240,6 +246,11 @@ export default function PaginaAdmin() {
                 {porCobrar.length}
               </span>
             )}
+            {id === "ventas" && pedidosPendientes.length > 0 && (
+              <span className="relative z-10 grid h-4 min-w-4 place-items-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                {pedidosPendientes.length}
+              </span>
+            )}
           </button>
         ))}
       </nav>
@@ -293,6 +304,11 @@ export default function PaginaAdmin() {
                   {id === "cobrar" && porCobrar.length > 0 && (
                     <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-amber-500 px-1 text-[11px] font-bold text-white">
                       {porCobrar.length}
+                    </span>
+                  )}
+                  {id === "ventas" && pedidosPendientes.length > 0 && (
+                    <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
+                      {pedidosPendientes.length}
                     </span>
                   )}
                 </button>

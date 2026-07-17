@@ -63,6 +63,12 @@ export interface Venta {
   fechaCobro: number | null;
   /** Pagos parciales registrados sobre la deuda. */
   abonos?: AbonoVenta[];
+  /**
+   * Si esta venta ya descontó unidades del inventario. Los pedidos de la
+   * tienda entran en false y solo descuentan stock cuando el dueño los
+   * aprueba. undefined = ventas antiguas, que sí descontaron (legado).
+   */
+  inventarioDescontado?: boolean;
   creadoEn: number;
 }
 
