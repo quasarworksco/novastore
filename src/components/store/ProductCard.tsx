@@ -56,11 +56,6 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
             {producto.imagenes.length}
           </span>
         )}
-        {!agotado && producto.stock <= 3 && (
-          <span className="absolute left-3 top-3 rounded-full bg-amber-500/95 px-2.5 py-1 text-[11px] font-semibold text-white shadow-soft backdrop-blur-sm">
-            {producto.stock === 1 ? "Última unidad" : `Últimas ${producto.stock}`}
-          </span>
-        )}
         {agotado && (
           <span className="absolute inset-0 grid place-items-center bg-white/60 backdrop-blur-sm">
             <Insignia tono="rojo">Agotado</Insignia>
