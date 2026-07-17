@@ -48,9 +48,11 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
   const [respaldoAbierto, setRespaldoAbierto] = useState(false);
   const [copiado, setCopiado] = useState(false);
 
+  // Ordenadas por fecha de la venta (la deuda más vieja primero), para
+  // llevar el control de cobros en el mismo orden en que se fió.
   const deudas = ventas
     .filter((v) => v.fiado && !v.pagado && v.estado !== "cancelada")
-    .sort((a, b) => (a.fechaCobro ?? Infinity) - (b.fechaCobro ?? Infinity));
+    .sort((a, b) => a.creadoEn - b.creadoEn);
 
   const totalPorCobrar = deudas.reduce((acc, v) => acc + saldoPendiente(v), 0);
   const vencidas = deudas.filter((v) => {
@@ -83,7 +85,9 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
       if (!actual.telefono && v.cliente.telefono) actual.telefono = v.cliente.telefono;
       mapa.set(clave, actual);
     }
-    return Array.from(mapa.values()).sort((a, b) => b.saldo - a.saldo);
+    // Las deudas ya vienen ordenadas por fecha de venta, así que el mapa
+    // conserva ese orden: cada cliente aparece según su deuda más antigua.
+    return Array.from(mapa.values());
   }, [deudas]);
 
   /** Monto compacto para texto: $65 o $65,50 (sin ",00" innecesario). */
@@ -247,10 +251,11 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
       </h3>
       <GlassCard className="overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px] text-left text-sm">
+          <table className="w-full min-w-[920px] text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500">
-                <th className="px-5 py-4 font-medium">Cliente</th>
+                <th className="px-5 py-4 font-medium">Fecha</th>
+                <th className="px-3 py-4 font-medium">Cliente</th>
                 <th className="px-3 py-4 font-medium">Detalle</th>
                 <th className="px-3 py-4 text-right font-medium">Total</th>
                 <th className="px-3 py-4 text-right font-medium">Abonado</th>
@@ -271,7 +276,10 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                     key={v.id}
                     className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
                   >
-                    <td className="px-5 py-3">
+                    <td className="whitespace-nowrap px-5 py-3 text-slate-600">
+                      {formatoFecha(v.creadoEn).split(",")[0]}
+                    </td>
+                    <td className="px-3 py-3">
                       <p className="font-medium text-slate-900">{v.cliente.nombre || "—"}</p>
                       {v.cliente.telefono && (
                         <p className="text-xs text-slate-500">{v.cliente.telefono}</p>

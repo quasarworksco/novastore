@@ -16,6 +16,7 @@ import { TablaClientes } from "@/components/admin/TablaClientes";
 import { TablaProductos } from "@/components/admin/TablaProductos";
 import { TablaVentas } from "@/components/admin/TablaVentas";
 import {
+  IconoAlerta,
   IconoBillete,
   IconoBuscar,
   IconoCaja,
@@ -77,6 +78,7 @@ export default function PaginaAdmin() {
   const [ventaManualAbierta, setVentaManualAbierta] = useState(false);
   const [sembrando, setSembrando] = useState(false);
   const [busquedaProd, setBusquedaProd] = useState("");
+  const [soloSinStock, setSoloSinStock] = useState(false);
 
   useEffect(() => {
     setAutenticado(sesionValida());
@@ -118,14 +120,17 @@ export default function PaginaAdmin() {
     [ventas]
   );
 
+  const sinStock = useMemo(() => productos.filter((p) => p.stock <= 0), [productos]);
+
   const productosFiltrados = useMemo(() => {
     const q = busquedaProd.trim().toLowerCase();
-    if (!q) return productos;
-    return productos.filter(
+    const base = soloSinStock ? sinStock : productos;
+    if (!q) return base;
+    return base.filter(
       (p) =>
         p.nombre.toLowerCase().includes(q) || (p.categoria ?? "").toLowerCase().includes(q)
     );
-  }, [productos, busquedaProd]);
+  }, [productos, sinStock, soloSinStock, busquedaProd]);
 
   function abrirCrear() {
     setProductoEnEdicion(null);
@@ -403,25 +408,49 @@ export default function PaginaAdmin() {
                 </div>
               </div>
               <ResumenFinanciero productos={productos} />
-              <div className="relative">
-                <IconoBuscar className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  value={busquedaProd}
-                  onChange={(e) => setBusquedaProd(e.target.value)}
-                  placeholder="Buscar producto por nombre o categoría…"
-                  className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative min-w-[220px] flex-1">
+                  <IconoBuscar className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="search"
+                    value={busquedaProd}
+                    onChange={(e) => setBusquedaProd(e.target.value)}
+                    placeholder="Buscar producto por nombre o categoría…"
+                    className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+                <button
+                  onClick={() => setSoloSinStock((v) => !v)}
+                  className={`flex shrink-0 items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+                    soloSinStock
+                      ? "border-rose-300 bg-rose-50 text-rose-700"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <IconoAlerta className="h-4 w-4" />
+                  Sin stock
+                  <span
+                    className={`grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold ${
+                      sinStock.length > 0 ? "bg-rose-500 text-white" : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {sinStock.length}
+                  </span>
+                </button>
               </div>
-              {busquedaProd.trim() && (
+              {(busquedaProd.trim() || soloSinStock) && (
                 <p className="-mt-4 text-xs text-slate-400">
                   {productosFiltrados.length}{" "}
-                  {productosFiltrados.length === 1 ? "producto encontrado" : "productos encontrados"}
+                  {productosFiltrados.length === 1 ? "producto" : "productos"}
+                  {soloSinStock ? " sin stock" : ""}
+                  {busquedaProd.trim() ? ` para «${busquedaProd.trim()}»` : ""}
                 </p>
               )}
-              {productosFiltrados.length === 0 && busquedaProd.trim() ? (
+              {productosFiltrados.length === 0 && (busquedaProd.trim() || soloSinStock) ? (
                 <p className="rounded-2xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-500">
-                  No se encontraron productos para «{busquedaProd.trim()}».
+                  {soloSinStock && !busquedaProd.trim()
+                    ? "Ningún producto está sin stock. Todo el catálogo tiene unidades."
+                    : `No se encontraron productos${soloSinStock ? " sin stock" : ""} para «${busquedaProd.trim()}».`}
                 </p>
               ) : (
                 <TablaProductos
