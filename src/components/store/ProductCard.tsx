@@ -33,7 +33,7 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
     >
       <button
         onClick={() => onVer(producto)}
-        className="relative aspect-square w-full overflow-hidden bg-slate-100"
+        className="relative aspect-[5/4] w-full overflow-hidden bg-slate-100"
         aria-label={`Ver ${producto.nombre}`}
       >
         {producto.imagenes[0] ? (
@@ -56,6 +56,11 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
             {producto.imagenes.length}
           </span>
         )}
+        {!agotado && producto.stock <= 3 && (
+          <span className="absolute left-3 top-3 rounded-full bg-amber-500/95 px-2.5 py-1 text-[11px] font-semibold text-white shadow-soft backdrop-blur-sm">
+            {producto.stock === 1 ? "Última unidad" : `Últimas ${producto.stock}`}
+          </span>
+        )}
         {agotado && (
           <span className="absolute inset-0 grid place-items-center bg-white/60 backdrop-blur-sm">
             <Insignia tono="rojo">Agotado</Insignia>
@@ -76,7 +81,7 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
         </motion.button>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5 p-4">
+      <div className="flex flex-1 flex-col gap-1 p-3.5 pt-2.5">
         <span className="pr-12 text-[11px] font-medium uppercase tracking-wider text-blue-500">
           {producto.categoria}
         </span>
@@ -84,7 +89,7 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
           {producto.nombre}
         </h3>
 
-        <div className="mt-auto space-y-1.5 pt-2">
+        <div className="mt-auto space-y-1 pt-1.5">
           <div>
             <p className="text-lg font-bold leading-tight text-slate-900">
               {formatoMoneda(producto.precioVenta)}
@@ -96,15 +101,11 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
             )}
           </div>
           {tienePromocion && (
-            <div className="flex flex-col rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
-                En divisas
-              </span>
-              <span className="flex items-center gap-1.5 text-base font-bold leading-tight text-emerald-700">
-                <IconoBillete className="h-4 w-4 shrink-0" />
-                {formatoMoneda(producto.precioVentaDivisas)}
-              </span>
-            </div>
+            <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] font-semibold text-emerald-700">
+              <IconoBillete className="h-4 w-4 shrink-0" />
+              {formatoMoneda(producto.precioVentaDivisas)}
+              <span className="whitespace-nowrap font-medium text-emerald-600/80">en divisas</span>
+            </p>
           )}
         </div>
       </div>
