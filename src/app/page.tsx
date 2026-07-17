@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconoFlechaDer, IconoFlechaIzq } from "@/components/icons";
+import {
+  IconoBillete,
+  IconoCohete,
+  IconoFlechaDer,
+  IconoFlechaIzq,
+  IconoWhatsApp,
+} from "@/components/icons";
+import { imagenOptimizada } from "@/lib/imagen";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
 import { CartDrawer } from "@/components/store/CartDrawer";
@@ -100,7 +107,8 @@ function Tienda() {
             }}
           />
 
-          <div className="relative">
+          <div className="relative flex items-center gap-8">
+            <div className="min-w-0 flex-1">
             <h1 className="max-w-3xl text-[2.7rem] font-extrabold leading-[1.02] tracking-tight text-slate-900 sm:text-6xl">
               {["Todo", "lo", "que", "te", "gusta,"].map((palabra, i) => (
                 <motion.span
@@ -144,17 +152,84 @@ function Tienda() {
               favoritos y coordina tu entrega en segundos.
             </p>
 
-            {soloCategorias.length > 0 && (
-              <div className="mt-7 flex flex-wrap gap-2">
-                {soloCategorias.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCategoria(c)}
-                    className="rounded-full border border-blue-100 bg-white/80 px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-soft transition hover:border-blue-300 hover:text-blue-700"
-                  >
-                    {c}
-                  </button>
-                ))}
+            {/* Llamadas a la acción */}
+            <motion.div
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.5, ease: "easeOut" }}
+              className="mt-7 flex flex-wrap items-center gap-3"
+            >
+              <a
+                href="#catalogo"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document
+                    .getElementById("catalogo")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-600 to-sky-500 px-6 py-3 text-sm font-semibold text-white shadow-glow transition hover:brightness-110"
+              >
+                <IconoCohete className="h-4 w-4" />
+                Ver catálogo
+              </a>
+              <a
+                href="https://wa.me/584121002090"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/85 px-6 py-3 text-sm font-semibold text-emerald-700 shadow-soft backdrop-blur-sm transition hover:border-emerald-300 hover:bg-emerald-50"
+              >
+                <IconoWhatsApp className="h-4 w-4" />
+                Escríbenos
+              </a>
+            </motion.div>
+
+            {/* Señales de confianza */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.15, duration: 0.5 }}
+              className="mt-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <IconoBillete className="h-3.5 w-3.5 text-emerald-600" />
+                Paga en bolívares o divisas
+              </span>
+              <span className="text-slate-300">·</span>
+              <span>Entrega coordinada por WhatsApp</span>
+            </motion.p>
+            </div>
+
+            {/* Collage de productos destacados (solo escritorio) */}
+            {destacados.length >= 2 && (
+              <div className="relative hidden h-80 w-[21rem] shrink-0 lg:block xl:w-[24rem]">
+                {destacados.slice(0, 3).map((p, i) => {
+                  const posiciones = [
+                    "left-0 top-6 z-20 h-52 w-44 -rotate-6",
+                    "right-2 top-0 z-10 h-48 w-40 rotate-6",
+                    "bottom-0 left-1/2 z-30 h-48 w-40 -translate-x-1/3 rotate-2",
+                  ];
+                  return (
+                    <motion.button
+                      key={p.id}
+                      onClick={() => setDetalle(p)}
+                      initial={{ opacity: 0, y: 28, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 0.5 + i * 0.15, duration: 0.6, ease: "easeOut" }}
+                      whileHover={{ scale: 1.05, rotate: 0, zIndex: 40 }}
+                      aria-label={`Ver ${p.nombre}`}
+                      className={`absolute overflow-hidden rounded-3xl border-4 border-white bg-slate-100 shadow-glass ${posiciones[i]}`}
+                    >
+                      {p.imagenes[0] && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={imagenOptimizada(p.imagenes[0], 400)}
+                          alt={p.nombre}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -231,7 +306,7 @@ function Tienda() {
         )}
 
         {/* Categorías */}
-        <div className="sticky top-[84px] z-30 -mx-4 mb-6 px-4 py-2">
+        <div id="catalogo" className="sticky top-[84px] z-30 -mx-4 mb-6 scroll-mt-24 px-4 py-2">
           <div className="rounded-3xl border border-glass-border bg-white/85 p-1.5 shadow-soft backdrop-blur-2xl">
             <CategoryTabs categorias={categorias} activa={categoria} onCambiar={setCategoria} />
           </div>
