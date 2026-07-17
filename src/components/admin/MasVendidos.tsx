@@ -22,6 +22,8 @@ export function MasVendidos({ ventas, limite = 5 }: { ventas: Venta[]; limite?: 
     const mapa = new Map<string, Fila>();
     for (const v of ventas) {
       if (v.estado === "cancelada") continue;
+      // Los pedidos web sin aprobar aún no son ventas reales.
+      if (v.inventarioDescontado === false) continue;
       for (const it of v.items) {
         const clave = it.productoId || it.nombre;
         const actual = mapa.get(clave) ?? { nombre: it.nombre, unidades: 0, ingreso: 0 };

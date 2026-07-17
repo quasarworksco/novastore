@@ -1,10 +1,10 @@
 "use client";
 
-import { IconoBasura, IconoBillete, IconoDolar } from "@/components/icons";
+import { IconoBasura, IconoBillete, IconoCerrar, IconoCheck, IconoDolar } from "@/components/icons";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Insignia } from "@/components/ui/Insignia";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
-import { actualizarEstadoVenta, eliminarVenta } from "@/lib/store";
+import { actualizarEstadoVenta, aprobarVenta, eliminarVenta, rechazarVenta } from "@/lib/store";
 import type { Venta } from "@/lib/types";
 
 const tonoEstado: Record<Venta["estado"], "ambar" | "violeta" | "verde" | "rojo"> = {
@@ -27,12 +27,38 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
   async function confirmarEliminar(v: Venta) {
     const detalle = `${v.cliente.nombre || "cliente"} — ${formatoMoneda(v.total)}`;
     const unidades = v.items.reduce((a, i) => a + i.cantidad, 0);
+    const notaStock =
+      v.inventarioDescontado === false
+        ? "Este pedido no había descontado stock, así que el inventario no cambia."
+        : `Las ${unidades} unidad(es) vendidas volverán al stock de sus productos.`;
     if (
       window.confirm(
-        `¿Seguro que quieres eliminar esta venta del historial?\n\n${detalle}\n\nLas ${unidades} unidad(es) vendidas volverán al stock de sus productos. Esta acción no se puede deshacer.`
+        `¿Seguro que quieres eliminar esta venta del historial?\n\n${detalle}\n\n${notaStock} Esta acción no se puede deshacer.`
       )
     ) {
       await eliminarVenta(v);
+    }
+  }
+
+  async function confirmarAprobar(v: Venta) {
+    const detalle = `${v.cliente.nombre || "cliente"} — ${formatoMoneda(v.total)}`;
+    if (
+      window.confirm(
+        `¿Aprobar este pedido?\n\n${detalle}\n\nSe descontarán las unidades del inventario y la venta contará como ingreso.`
+      )
+    ) {
+      await aprobarVenta(v);
+    }
+  }
+
+  async function confirmarRechazar(v: Venta) {
+    const detalle = `${v.cliente.nombre || "cliente"} — ${formatoMoneda(v.total)}`;
+    if (
+      window.confirm(
+        `¿Rechazar este pedido?\n\n${detalle}\n\nQuedará cancelado y el inventario no se toca.`
+      )
+    ) {
+      await rechazarVenta(v);
     }
   }
 
@@ -100,26 +126,45 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
                     {formatoMoneda(ganancia)}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <select
-                      value={v.estado}
-                      onChange={(e) =>
-                        actualizarEstadoVenta(v.id, e.target.value as Venta["estado"])
-                      }
-                      className={`cursor-pointer rounded-full border bg-white px-2.5 py-1 text-xs font-medium outline-none ${
-                        {
-                          ambar: "border-amber-300 text-amber-700",
-                          violeta: "border-blue-300 text-blue-700",
-                          verde: "border-emerald-300 text-emerald-700",
-                          rojo: "border-rose-300 text-rose-600",
-                        }[tonoEstado[v.estado]]
-                      }`}
-                    >
-                      {estados.map((e) => (
-                        <option key={e} value={e} className="bg-white text-slate-700">
-                          {e}
-                        </option>
-                      ))}
-                    </select>
+                    {v.estado === "pendiente" && v.inventarioDescontado === false ? (
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => confirmarAprobar(v)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                        >
+                          <IconoCheck className="h-3.5 w-3.5" />
+                          Aprobar
+                        </button>
+                        <button
+                          onClick={() => confirmarRechazar(v)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-600 transition hover:bg-rose-100"
+                        >
+                          <IconoCerrar className="h-3.5 w-3.5" />
+                          Rechazar
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={v.estado}
+                        onChange={(e) =>
+                          actualizarEstadoVenta(v, e.target.value as Venta["estado"])
+                        }
+                        className={`cursor-pointer rounded-full border bg-white px-2.5 py-1 text-xs font-medium outline-none ${
+                          {
+                            ambar: "border-amber-300 text-amber-700",
+                            violeta: "border-blue-300 text-blue-700",
+                            verde: "border-emerald-300 text-emerald-700",
+                            rojo: "border-rose-300 text-rose-600",
+                          }[tonoEstado[v.estado]]
+                        }`}
+                      >
+                        {estados.map((e) => (
+                          <option key={e} value={e} className="bg-white text-slate-700">
+                            {e}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </td>
                   <td className="px-5 py-3 text-right">
                     <button

@@ -61,7 +61,9 @@ export function CartDrawer() {
         estado: "pendiente",
         origen: "tienda",
         fiado: false,
-        pagado: true,
+        // Los pedidos web no cuentan como ingreso ni descuentan stock
+        // hasta que el dueño los apruebe en el panel.
+        pagado: false,
         fechaCobro: null,
       });
     } catch {
