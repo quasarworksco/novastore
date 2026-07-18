@@ -1,6 +1,15 @@
 "use client";
 
-import { IconoBasura, IconoBillete, IconoCerrar, IconoCheck, IconoDolar } from "@/components/icons";
+import { useState } from "react";
+import {
+  IconoBasura,
+  IconoBillete,
+  IconoCerrar,
+  IconoCheck,
+  IconoDolar,
+  IconoRecibo,
+} from "@/components/icons";
+import { ReciboVenta } from "@/components/admin/ReciboVenta";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { Insignia } from "@/components/ui/Insignia";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
@@ -24,6 +33,8 @@ function gananciaVenta(v: Venta): number {
 }
 
 export function TablaVentas({ ventas }: { ventas: Venta[] }) {
+  const [ventaRecibo, setVentaRecibo] = useState<Venta | null>(null);
+
   async function confirmarEliminar(v: Venta) {
     const detalle = `${v.cliente.nombre || "cliente"} — ${formatoMoneda(v.total)}`;
     const unidades = v.items.reduce((a, i) => a + i.cantidad, 0);
@@ -166,14 +177,24 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
                       </select>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-right">
-                    <button
-                      onClick={() => confirmarEliminar(v)}
-                      aria-label="Eliminar venta"
-                      className="ml-auto grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
-                    >
-                      <IconoBasura className="h-4 w-4" />
-                    </button>
+                  <td className="px-5 py-3">
+                    <div className="flex justify-end gap-1.5">
+                      <button
+                        onClick={() => setVentaRecibo(v)}
+                        aria-label="Ver recibo"
+                        title="Ver recibo"
+                        className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-blue-600"
+                      >
+                        <IconoRecibo className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => confirmarEliminar(v)}
+                        aria-label="Eliminar venta"
+                        className="grid h-8 w-8 place-items-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                      >
+                        <IconoBasura className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -188,6 +209,8 @@ export function TablaVentas({ ventas }: { ventas: Venta[] }) {
           aparecerá aquí.
         </p>
       )}
+
+      <ReciboVenta venta={ventaRecibo} onCerrar={() => setVentaRecibo(null)} />
     </GlassCard>
   );
 }

@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   IconoAlerta,
   IconoBillete,
   IconoCerrar,
   IconoCheck,
+  IconoFlechaDer,
   IconoMas,
   IconoRecibo,
   IconoReloj,
   IconoUsuarios,
   IconoWhatsApp,
 } from "@/components/icons";
+import { ReciboVenta } from "@/components/admin/ReciboVenta";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -47,6 +49,8 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
   const [error, setError] = useState("");
   const [respaldoAbierto, setRespaldoAbierto] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [clienteAbierto, setClienteAbierto] = useState<string | null>(null);
+  const [ventaRecibo, setVentaRecibo] = useState<Venta | null>(null);
 
   // Ordenadas por fecha de la venta (la deuda más vieja primero), para
   // llevar el control de cobros en el mismo orden en que se fió.
@@ -61,23 +65,31 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
   });
   const totalVencido = vencidas.reduce((acc, v) => acc + saldoPendiente(v), 0);
 
-  // Total adeudado agrupado por cliente.
+  // Total adeudado agrupado por cliente, con sus ventas para el desglose.
   const porCliente = useMemo(() => {
     const mapa = new Map<
       string,
-      { nombre: string; telefono: string; saldo: number; deudas: number; proximaFecha: number | null }
+      {
+        clave: string;
+        nombre: string;
+        telefono: string;
+        saldo: number;
+        ventas: Venta[];
+        proximaFecha: number | null;
+      }
     >();
     for (const v of deudas) {
       const clave = (v.cliente.telefono || v.cliente.nombre || "—").toLowerCase();
       const actual = mapa.get(clave) ?? {
+        clave,
         nombre: v.cliente.nombre || "—",
         telefono: v.cliente.telefono || "",
         saldo: 0,
-        deudas: 0,
+        ventas: [] as Venta[],
         proximaFecha: null,
       };
       actual.saldo += saldoPendiente(v);
-      actual.deudas += 1;
+      actual.ventas.push(v);
       if (v.fechaCobro !== null) {
         actual.proximaFecha =
           actual.proximaFecha === null ? v.fechaCobro : Math.min(actual.proximaFecha, v.fechaCobro);
@@ -205,6 +217,9 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
               Copiar respaldo
             </Boton>
           </div>
+          <p className="text-xs text-slate-400">
+            Toca un cliente para ver el desglose de cada deuda con sus recibos.
+          </p>
           <GlassCard className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-sm">
@@ -220,23 +235,107 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                   {porCliente.map((c) => {
                     const dias = diasRestantes(c.proximaFecha);
                     const est = estadoCobro(dias);
+                    const abierto = clienteAbierto === c.clave;
                     return (
-                      <tr
-                        key={`${c.nombre}-${c.telefono}`}
-                        className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
-                      >
-                        <td className="px-5 py-3">
-                          <p className="font-medium text-slate-900">{c.nombre}</p>
-                          {c.telefono && <p className="text-xs text-slate-500">{c.telefono}</p>}
-                        </td>
-                        <td className="px-3 py-3 text-right text-slate-600">{c.deudas}</td>
-                        <td className="px-3 py-3">
-                          <Insignia tono={est.tono}>{est.texto}</Insignia>
-                        </td>
-                        <td className="px-5 py-3 text-right text-base font-bold text-slate-900">
-                          {formatoMoneda(c.saldo)}
-                        </td>
-                      </tr>
+                      <Fragment key={c.clave}>
+                        <tr
+                          onClick={() => setClienteAbierto(abierto ? null : c.clave)}
+                          className={`cursor-pointer border-b border-slate-100 transition-colors last:border-0 ${
+                            abierto ? "bg-blue-50/50" : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-2">
+                              <IconoFlechaDer
+                                className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform ${
+                                  abierto ? "rotate-90 text-blue-600" : ""
+                                }`}
+                              />
+                              <div>
+                                <p className="font-medium text-slate-900">{c.nombre}</p>
+                                {c.telefono && <p className="text-xs text-slate-500">{c.telefono}</p>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-right text-slate-600">{c.ventas.length}</td>
+                          <td className="px-3 py-3">
+                            <Insignia tono={est.tono}>{est.texto}</Insignia>
+                          </td>
+                          <td className="px-5 py-3 text-right text-base font-bold text-slate-900">
+                            {formatoMoneda(c.saldo)}
+                          </td>
+                        </tr>
+                        {abierto && (
+                          <tr className="border-b border-slate-100 bg-blue-50/30 last:border-0">
+                            <td colSpan={4} className="px-5 pb-4 pt-1">
+                              <div className="space-y-2">
+                                {c.ventas.map((v) => {
+                                  const saldoV = saldoPendiente(v);
+                                  const abonadoV = totalAbonado(v);
+                                  return (
+                                    <div
+                                      key={v.id}
+                                      className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-xs text-slate-500">
+                                          {formatoFecha(v.creadoEn).split(",")[0]}
+                                          {v.fechaCobro
+                                            ? ` · cobrar el ${formatoFecha(v.fechaCobro).split(",")[0]}`
+                                            : ""}
+                                        </p>
+                                        <p className="truncate text-sm text-slate-700">
+                                          {v.items.map((i) => `${i.cantidad}× ${i.nombre}`).join(", ")}
+                                        </p>
+                                      </div>
+                                      <div className="text-right text-xs text-slate-500">
+                                        <p>
+                                          Total{" "}
+                                          <span className="font-medium text-slate-700">
+                                            {formatoMoneda(v.total)}
+                                          </span>
+                                        </p>
+                                        {abonadoV > 0 && (
+                                          <p className="text-emerald-600">
+                                            Abonado {formatoMoneda(abonadoV)}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <p className="w-20 text-right text-sm font-bold text-slate-900">
+                                        {formatoMoneda(saldoV)}
+                                      </p>
+                                      <div className="flex gap-1.5">
+                                        <button
+                                          onClick={() => abrirAbono(v)}
+                                          className="inline-flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                                        >
+                                          <IconoMas className="h-3.5 w-3.5" />
+                                          Abonar
+                                        </button>
+                                        <button
+                                          onClick={() => marcarPagada(v)}
+                                          className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100"
+                                        >
+                                          <IconoCheck className="h-3.5 w-3.5" />
+                                          Cobrado
+                                        </button>
+                                        <button
+                                          onClick={() => setVentaRecibo(v)}
+                                          aria-label="Ver recibo"
+                                          title="Ver recibo"
+                                          className="grid h-7 w-7 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-blue-600"
+                                        >
+                                          <IconoRecibo className="h-3.5 w-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -319,6 +418,14 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                           <IconoCheck className="h-3.5 w-3.5" />
                           Cobrado
                         </button>
+                        <button
+                          onClick={() => setVentaRecibo(v)}
+                          aria-label="Ver recibo"
+                          title="Ver recibo"
+                          className="grid h-8 w-8 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-blue-600"
+                        >
+                          <IconoRecibo className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -334,6 +441,8 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
           </p>
         )}
       </GlassCard>
+
+      <ReciboVenta venta={ventaRecibo} onCerrar={() => setVentaRecibo(null)} />
 
       {/* Modal de respaldo de deudas */}
       <AnimatePresence>
