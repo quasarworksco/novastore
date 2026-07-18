@@ -21,7 +21,7 @@ import { GlassCard } from "@/components/ui/GlassCard";
 import { Insignia } from "@/components/ui/Insignia";
 import { StatCard } from "./StatCard";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
-import { abonarVenta, actualizarVenta } from "@/lib/store";
+import { abonarVenta, actualizarVenta, claveNombre } from "@/lib/store";
 import { saldoPendiente, totalAbonado, type Venta } from "@/lib/types";
 
 const DIA_MS = 86400000;
@@ -79,7 +79,9 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
       }
     >();
     for (const v of deudas) {
-      const clave = (v.cliente.telefono || v.cliente.nombre || "—").toLowerCase();
+      // Agrupar por nombre normalizado (espacios y mayúsculas no separan al
+      // mismo cliente); el teléfono solo es respaldo si no hay nombre.
+      const clave = claveNombre(v.cliente.nombre) || v.cliente.telefono || "—";
       const actual = mapa.get(clave) ?? {
         clave,
         nombre: v.cliente.nombre || "—",
@@ -197,7 +199,7 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
         />
         <StatCard
           etiqueta="Clientes que deben"
-          valor={String(new Set(deudas.map((d) => d.cliente.nombre || d.cliente.telefono)).size)}
+          valor={String(new Set(deudas.map((d) => claveNombre(d.cliente.nombre) || d.cliente.telefono)).size)}
           detalle="Con saldo pendiente"
           icono={IconoReloj}
           tono="cian"
