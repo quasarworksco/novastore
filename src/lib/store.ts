@@ -445,18 +445,45 @@ async function reintentar<T>(fn: () => Promise<T>, intentos = 3, esperaMs = 700)
   throw ultimoError;
 }
 
+/** Nombre limpio para guardar: sin espacios extra al inicio, final o dobles. */
+export function normalizarNombre(nombre: string): string {
+  return nombre.replace(/\s+/g, " ").trim();
+}
+
+/** Clave de comparación de nombres: normalizado y sin mayúsculas. */
+export function claveNombre(nombre: string): string {
+  return normalizarNombre(nombre).toLowerCase();
+}
+
 function buscarClienteExistente(
   clientes: Cliente[],
   nombre: string,
   telefono: string
 ): Cliente | undefined {
-  const nombreNorm = nombre.trim().toLowerCase();
+  const nombreNorm = claveNombre(nombre);
   const porNombre = () =>
-    nombreNorm ? clientes.find((c) => c.nombre.trim().toLowerCase() === nombreNorm) : undefined;
+    nombreNorm ? clientes.find((c) => claveNombre(c.nombre) === nombreNorm) : undefined;
   if (telefono) {
     return clientes.find((c) => c.telefono === telefono) ?? porNombre();
   }
   return porNombre();
+}
+
+/**
+ * Candidatos a cliente existente: busca por teléfono y, si no aparece nadie,
+ * también por nombre. Así una venta CON teléfono encuentra al cliente que se
+ * registró antes SIN teléfono (causa de fichas duplicadas).
+ */
+async function buscarCandidatosCliente(nombre: string, telefono: string): Promise<Cliente[]> {
+  if (telefono) {
+    const porTelefono = await rest
+      .consultarPorCampo<Cliente>("clientes", "telefono", telefono)
+      .catch(() => [] as Cliente[]);
+    if (porTelefono.length > 0) return porTelefono;
+  }
+  return rest
+    .consultarPorCampo<Cliente>("clientes", "nombre", normalizarNombre(nombre))
+    .catch(() => [] as Cliente[]);
 }
 
 /** Descuenta stock y registra la venta en el cliente (almacén demo). */
@@ -511,13 +538,9 @@ async function aplicarInventarioYCliente(
     })
   );
 
-  // Upsert de cliente: consulta puntual por teléfono (o por nombre si no
-  // hay teléfono) en lugar de leer la colección completa.
-  const candidatos = telefono
-    ? await rest.consultarPorCampo<Cliente>("clientes", "telefono", telefono).catch(() => [])
-    : await rest
-        .consultarPorCampo<Cliente>("clientes", "nombre", venta.cliente.nombre.trim())
-        .catch(() => [] as Cliente[]);
+  // Upsert de cliente: consulta puntual por teléfono con respaldo por
+  // nombre, en lugar de leer la colección completa.
+  const candidatos = await buscarCandidatosCliente(venta.cliente.nombre, telefono);
   const existente = buscarClienteExistente(candidatos, venta.cliente.nombre, telefono);
 
   if (existente) {
@@ -540,7 +563,7 @@ async function aplicarInventarioYCliente(
     });
   } else {
     const nuevo = {
-      nombre: venta.cliente.nombre,
+      nombre: normalizarNombre(venta.cliente.nombre),
       telefono,
       pedidos: 1,
       totalGastado: venta.total,
@@ -560,7 +583,11 @@ export async function registrarVenta(venta: VentaInput): Promise<void> {
   // tocan al cliente hasta que el dueño los apruebe en el panel. Las ventas
   // manuales sí se aplican de inmediato, como siempre.
   const diferido = venta.estado === "pendiente";
-  const datos: VentaInput = { ...venta, inventarioDescontado: !diferido };
+  const datos: VentaInput = {
+    ...venta,
+    cliente: { nombre: normalizarNombre(venta.cliente.nombre), telefono },
+    inventarioDescontado: !diferido,
+  };
 
   if (modoDemo) {
     const estado = cargarDemo();
@@ -642,7 +669,7 @@ export async function actualizarCliente(
   id: string,
   datos: { nombre: string; telefono: string }
 ): Promise<void> {
-  const cambios = { nombre: datos.nombre.trim(), telefono: datos.telefono.replace(/\D/g, "") };
+  const cambios = { nombre: normalizarNombre(datos.nombre), telefono: datos.telefono.replace(/\D/g, "") };
   if (modoDemo) {
     const st = cargarDemo();
     const c = st.clientes.find((x) => x.id === id);
@@ -770,9 +797,7 @@ export async function eliminarVenta(venta: Venta): Promise<void> {
   // Descontar la venta del cliente (consulta puntual, sin releer todo), con
   // reintentos para que un corte breve no deje el total del cliente inflado.
   const candidatos = await reintentar(() =>
-    telefono
-      ? rest.consultarPorCampo<Cliente>("clientes", "telefono", telefono)
-      : rest.consultarPorCampo<Cliente>("clientes", "nombre", venta.cliente.nombre.trim())
+    buscarCandidatosCliente(venta.cliente.nombre, telefono)
   ).catch(() => [] as Cliente[]);
   const cli = buscarClienteExistente(candidatos, venta.cliente.nombre, telefono);
   if (cli) {
