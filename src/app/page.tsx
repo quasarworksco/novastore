@@ -43,6 +43,17 @@ function Tienda() {
     };
   }, []);
 
+  // Enlace directo: si la URL trae ?p=<id>, abre ese producto al cargar.
+  const deepLinkHecho = useRef(false);
+  useEffect(() => {
+    if (cargando || deepLinkHecho.current) return;
+    const pid = new URLSearchParams(window.location.search).get("p");
+    if (!pid) return;
+    deepLinkHecho.current = true;
+    const prod = productos.find((x) => x.id === pid);
+    if (prod) setDetalle(prod);
+  }, [cargando, productos]);
+
   const soloCategorias = useMemo(
     () => Array.from(new Set(productos.map((p) => p.categoria).filter(Boolean))).sort(),
     [productos]

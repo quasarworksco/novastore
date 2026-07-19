@@ -6,14 +6,18 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   IconoBillete,
   IconoCerrar,
+  IconoCompartir,
   IconoFlechaDer,
   IconoFlechaIzq,
+  IconoImagen,
   IconoMas,
 } from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { NotasProducto } from "@/components/caracteristicas";
+import { ImagenEstado } from "@/components/store/ImagenEstado";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
+import { compartirProducto } from "@/lib/compartir";
 import { formatoBs, formatoMoneda } from "@/lib/format";
 import { imagenOptimizada } from "@/lib/imagen";
 import type { Producto } from "@/lib/types";
@@ -30,6 +34,7 @@ export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
   const { agregar } = useCarrito();
   const [indice, setIndice] = useState(0);
   const [verMas, setVerMas] = useState(false);
+  const [estadoAbierto, setEstadoAbierto] = useState(false);
 
   const imagenes = producto?.imagenes ?? [];
   const mover = (delta: number) =>
@@ -38,6 +43,7 @@ export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
   const descripcionLarga = (producto?.descripcion.length ?? 0) > 140;
 
   return (
+    <>
     <AnimatePresence
       onExitComplete={() => {
         setIndice(0);
@@ -191,21 +197,38 @@ export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
                 {producto.stock > 0 ? `${producto.stock} unidades disponibles` : "Sin stock disponible"}
               </p>
 
-              <Boton
-                className="mt-auto"
-                disabled={producto.stock <= 0}
-                onClick={() => {
-                  agregar(producto);
-                  onCerrar();
-                }}
-              >
-                <IconoMas className="h-4 w-4" />
-                Agregar al carrito
-              </Boton>
+              <div className="mt-auto space-y-2 pt-1">
+                <Boton
+                  className="w-full"
+                  disabled={producto.stock <= 0}
+                  onClick={() => {
+                    agregar(producto);
+                    onCerrar();
+                  }}
+                >
+                  <IconoMas className="h-4 w-4" />
+                  Agregar al carrito
+                </Boton>
+                <div className="grid grid-cols-2 gap-2">
+                  <Boton variante="vidrio" onClick={() => compartirProducto(producto)}>
+                    <IconoCompartir className="h-4 w-4" />
+                    Compartir
+                  </Boton>
+                  <Boton variante="vidrio" onClick={() => setEstadoAbierto(true)}>
+                    <IconoImagen className="h-4 w-4" />
+                    Para estado
+                  </Boton>
+                </div>
+              </div>
             </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+    <ImagenEstado
+      producto={estadoAbierto ? producto : null}
+      onCerrar={() => setEstadoAbierto(false)}
+    />
+    </>
   );
 }
