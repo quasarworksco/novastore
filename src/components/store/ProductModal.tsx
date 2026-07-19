@@ -11,6 +11,7 @@ import {
   IconoMas,
 } from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
+import { NotasProducto } from "@/components/caracteristicas";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
 import { formatoBs, formatoMoneda } from "@/lib/format";
@@ -129,6 +130,7 @@ export function ProductModal({ producto, onCerrar, tasaBs = 0 }: Props) {
               </div>
 
               <h2 className="text-xl font-bold leading-tight text-slate-900">{producto.nombre}</h2>
+              <NotasProducto ids={producto.caracteristicas} />
               {producto.descripcion && (
                 <div>
                   <p

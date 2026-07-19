@@ -18,6 +18,7 @@ import { formatoMoneda, formatoPorcentaje } from "@/lib/format";
 import { subirImagen, subirImagenDesdeUrl } from "@/lib/cloudinary";
 import { imagenOptimizada } from "@/lib/imagen";
 import { actualizarProducto, crearProducto } from "@/lib/store";
+import { CARACTERISTICAS } from "@/components/caracteristicas";
 import type { Producto } from "@/lib/types";
 
 interface Props {
@@ -38,6 +39,7 @@ interface Borrador {
   imagenes: string[];
   activo: boolean;
   destacado: boolean;
+  caracteristicas: string[];
 }
 
 const borradorVacio: Borrador = {
@@ -51,6 +53,7 @@ const borradorVacio: Borrador = {
   imagenes: [],
   activo: true,
   destacado: false,
+  caracteristicas: [],
 };
 
 const CATEGORIAS_BASE = ["Perfumes", "Electrónica", "Accesorios", "Juguetes"];
@@ -118,6 +121,7 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
             imagenes: [...producto.imagenes],
             activo: producto.activo,
             destacado: producto.destacado ?? false,
+            caracteristicas: producto.caracteristicas ?? [],
           }
         : borradorVacio
     );
@@ -132,6 +136,16 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
 
   function actualizar<K extends keyof Borrador>(clave: K, valor: Borrador[K]) {
     setBorrador((prev) => ({ ...prev, [clave]: valor }));
+  }
+
+  /** Marca o desmarca una característica (día, noche, floral…). */
+  function alternarCaracteristica(id: string) {
+    setBorrador((prev) => ({
+      ...prev,
+      caracteristicas: prev.caracteristicas.includes(id)
+        ? prev.caracteristicas.filter((c) => c !== id)
+        : [...prev.caracteristicas, id],
+    }));
   }
 
   async function cargarImagenes(archivos: FileList | null) {
@@ -187,6 +201,7 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
       imagenes: borrador.imagenes,
       activo: borrador.activo,
       destacado: borrador.destacado,
+      caracteristicas: borrador.caracteristicas,
     };
 
     try {
@@ -260,6 +275,36 @@ export function FormularioProducto({ abierto, producto, categorias, onCerrar }: 
               value={borrador.descripcion}
               onChange={(e) => actualizar("descripcion", e.target.value)}
             />
+
+            {/* Características (día/noche, familia olfativa…) */}
+            <div className="space-y-2">
+              <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
+                Características (opcional)
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {CARACTERISTICAS.map(({ id, etiqueta, clase, Icono }) => {
+                  const activa = borrador.caracteristicas.includes(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => alternarCaracteristica(id)}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                        activa
+                          ? clase
+                          : "border-slate-200 bg-white text-slate-400 hover:border-slate-300 hover:text-slate-600"
+                      }`}
+                    >
+                      <Icono className="h-3.5 w-3.5 shrink-0" />
+                      {etiqueta}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Se muestran como etiquetas en la tarjeta del producto. Ideal para perfumes.
+              </p>
+            </div>
 
             {/* Precios y rentabilidad en vivo */}
             <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
