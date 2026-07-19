@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { IconoBillete, IconoImagen, IconoMas } from "@/components/icons";
+import { NotasProducto } from "@/components/caracteristicas";
 import { Insignia } from "@/components/ui/Insignia";
 import { useCarrito } from "@/lib/cart-context";
 import { formatoBs, formatoMoneda } from "@/lib/format";
@@ -83,6 +84,7 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-slate-900">
           {producto.nombre}
         </h3>
+        <NotasProducto ids={producto.caracteristicas} />
 
         <div className="mt-auto space-y-1 pt-1.5">
           <div>

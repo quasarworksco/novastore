@@ -20,6 +20,8 @@ export interface Producto {
   activo: boolean;
   /** Se muestra en la sección "Productos destacados" de la tienda. */
   destacado: boolean;
+  /** Ids de características (día, noche, floral…) mostradas como etiquetas. */
+  caracteristicas?: string[];
   creadoEn: number;
   actualizadoEn: number;
 }
