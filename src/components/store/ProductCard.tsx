@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { IconoBillete, IconoImagen, IconoMas } from "@/components/icons";
+import { IconoBillete, IconoCompartir, IconoImagen, IconoMas } from "@/components/icons";
 import { NotasProducto } from "@/components/caracteristicas";
 import { Insignia } from "@/components/ui/Insignia";
+import { compartirProducto } from "@/lib/compartir";
 import { useCarrito } from "@/lib/cart-context";
 import { formatoBs, formatoMoneda } from "@/lib/format";
 import { imagenOptimizada } from "@/lib/imagen";
@@ -57,6 +58,24 @@ export function ProductCard({ producto, onVer, tasaBs = 0 }: Props) {
             {producto.imagenes.length}
           </span>
         )}
+        <span
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            compartirProducto(producto);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.stopPropagation();
+              compartirProducto(producto);
+            }
+          }}
+          aria-label={`Compartir ${producto.nombre}`}
+          className="absolute left-3 top-3 grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-white/85 text-slate-600 shadow-soft backdrop-blur-md transition hover:bg-white hover:text-blue-600"
+        >
+          <IconoCompartir className="h-4 w-4" />
+        </span>
         {agotado && (
           <span className="absolute inset-0 grid place-items-center bg-white/60 backdrop-blur-sm">
             <Insignia tono="rojo">Agotado</Insignia>

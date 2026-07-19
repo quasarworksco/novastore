@@ -262,3 +262,19 @@ export const IconoRecibo = (p: IconProps) => (
     <path d="M9 8h6M9 11.5h6M9 15h3.5" />
   </Base>
 );
+
+export const IconoCompartir = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4" />
+  </Base>
+);
+
+export const IconoDescargar = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M12 3v12M8 11l4 4 4-4" />
+    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+  </Base>
+);
