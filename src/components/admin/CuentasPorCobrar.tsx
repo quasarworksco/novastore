@@ -235,8 +235,19 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                 </thead>
                 <tbody>
                   {porCliente.map((c) => {
-                    const dias = diasRestantes(c.proximaFecha);
-                    const est = estadoCobro(dias);
+                    // Separar lo realmente vencido del próximo cobro futuro:
+                    // una deuda vieja no debe marcar como vencido al cliente
+                    // que ya está al día con sus compras nuevas.
+                    const saldoVencidoCli = c.ventas.reduce((acc, v) => {
+                      const dd = diasRestantes(v.fechaCobro);
+                      return dd !== null && dd < 0 ? acc + saldoPendiente(v) : acc;
+                    }, 0);
+                    const proximaFutura = c.ventas.reduce<number | null>((min, v) => {
+                      const dd = diasRestantes(v.fechaCobro);
+                      if (v.fechaCobro === null || dd === null || dd < 0) return min;
+                      return min === null ? v.fechaCobro : Math.min(min, v.fechaCobro);
+                    }, null);
+                    const estFutura = estadoCobro(diasRestantes(proximaFutura));
                     const abierto = clienteAbierto === c.clave;
                     return (
                       <Fragment key={c.clave}>
@@ -261,7 +272,18 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                           </td>
                           <td className="px-3 py-3 text-right text-slate-600">{c.ventas.length}</td>
                           <td className="px-3 py-3">
-                            <Insignia tono={est.tono}>{est.texto}</Insignia>
+                            <div className="flex flex-col items-start gap-1">
+                              {saldoVencidoCli > 0 && (
+                                <Insignia tono="rojo">
+                                  Vencido {formatoMoneda(saldoVencidoCli)}
+                                </Insignia>
+                              )}
+                              {proximaFutura !== null ? (
+                                <Insignia tono={estFutura.tono}>{estFutura.texto}</Insignia>
+                              ) : (
+                                saldoVencidoCli === 0 && <Insignia tono="ambar">Sin fecha</Insignia>
+                              )}
+                            </div>
                           </td>
                           <td className="px-5 py-3 text-right text-base font-bold text-slate-900">
                             {formatoMoneda(c.saldo)}
