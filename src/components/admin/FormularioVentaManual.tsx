@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { IconoBasura, IconoBillete, IconoCerrar, IconoCheck, IconoDolar } from "@/components/icons";
+import {
+  IconoBasura,
+  IconoBillete,
+  IconoBuscar,
+  IconoCerrar,
+  IconoCheck,
+  IconoDolar,
+  IconoMas,
+} from "@/components/icons";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { Insignia } from "@/components/ui/Insignia";
@@ -30,7 +38,8 @@ export function FormularioVentaManual({ abierto, productos, clientes, onCerrar }
   const [telefono, setTelefono] = useState("");
   const [fiado, setFiado] = useState(false);
   const [fechaCobro, setFechaCobro] = useState("");
-  const [seleccion, setSeleccion] = useState("");
+  const [busqueda, setBusqueda] = useState("");
+  const [foco, setFoco] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
@@ -42,12 +51,23 @@ export function FormularioVentaManual({ abierto, productos, clientes, onCerrar }
       setTelefono("");
       setFiado(false);
       setFechaCobro("");
-      setSeleccion("");
+      setBusqueda("");
+      setFoco(false);
       setError("");
     }
   }, [abierto]);
 
   const disponibles = productos.filter((p) => p.stock > 0);
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return disponibles;
+    return disponibles.filter(
+      (p) =>
+        p.nombre.toLowerCase().includes(q) || (p.categoria ?? "").toLowerCase().includes(q)
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productos, busqueda]);
   const total = useMemo(
     () => lineas.reduce((acc, l) => acc + precioSegunMetodo(l.producto, metodoPago) * l.cantidad, 0),
     [lineas, metodoPago]
@@ -65,7 +85,7 @@ export function FormularioVentaManual({ abierto, productos, clientes, onCerrar }
       }
       return [...prev, { producto: p, cantidad: 1 }];
     });
-    setSeleccion("");
+    setBusqueda("");
   }
 
   /** Al escribir/elegir un nombre, autocompleta el teléfono si el cliente ya existe. */
@@ -153,20 +173,49 @@ export function FormularioVentaManual({ abierto, productos, clientes, onCerrar }
               </button>
             </div>
 
-            {/* Agregar productos */}
-            <div className="flex gap-2">
-              <select
-                value={seleccion}
-                onChange={(e) => agregar(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              >
-                <option value="">Agregar producto…</option>
-                {disponibles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre} — {formatoMoneda(precioSegunMetodo(p, metodoPago))} ({p.stock} en stock)
-                  </option>
-                ))}
-              </select>
+            {/* Buscar y agregar productos */}
+            <div className="relative">
+              <IconoBuscar className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
+              <input
+                type="search"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                onFocus={() => setFoco(true)}
+                onBlur={() => window.setTimeout(() => setFoco(false), 150)}
+                placeholder="Buscar producto para agregar…"
+                className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+              {(foco || busqueda.trim() !== "") && (
+                <div className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-1.5 shadow-soft">
+                  {filtrados.length === 0 ? (
+                    <p className="px-3 py-3 text-center text-xs text-slate-400">
+                      {disponibles.length === 0
+                        ? "No hay productos con stock."
+                        : `Sin coincidencias para «${busqueda.trim()}».`}
+                    </p>
+                  ) : (
+                    filtrados.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => agregar(p.id)}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition hover:bg-blue-50"
+                      >
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-slate-900">
+                            {p.nombre}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {formatoMoneda(precioSegunMetodo(p, metodoPago))} · {p.stock} en stock
+                          </span>
+                        </span>
+                        <IconoMas className="h-4 w-4 shrink-0 text-blue-600" />
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Líneas */}
