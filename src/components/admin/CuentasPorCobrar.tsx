@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   IconoAlerta,
   IconoBillete,
+  IconoBuscar,
   IconoCerrar,
   IconoCheck,
   IconoFlechaDer,
@@ -51,6 +52,7 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
   const [copiado, setCopiado] = useState(false);
   const [clienteAbierto, setClienteAbierto] = useState<string | null>(null);
   const [ventaRecibo, setVentaRecibo] = useState<Venta | null>(null);
+  const [busqueda, setBusqueda] = useState("");
 
   // Ordenadas por fecha de la venta (la deuda más vieja primero), para
   // llevar el control de cobros en el mismo orden en que se fió.
@@ -180,6 +182,16 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
     }
   }
 
+  // Búsqueda por nombre o teléfono del cliente (solo filtra las tablas; las
+  // tarjetas de arriba y el respaldo siguen mostrando el total real).
+  const q = busqueda.trim().toLowerCase();
+  const coincide = (nombre: string, tel: string) =>
+    !q || nombre.toLowerCase().includes(q) || (tel ?? "").toLowerCase().includes(q);
+  const porClienteVisible = porCliente.filter((c) => coincide(c.nombre, c.telefono));
+  const deudasVisibles = deudas.filter((v) =>
+    coincide(v.cliente.nombre ?? "", v.cliente.telefono ?? "")
+  );
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -205,6 +217,19 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
           tono="cian"
         />
       </div>
+
+      {deudas.length > 0 && (
+        <div className="relative">
+          <IconoBuscar className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar deuda por nombre o teléfono del cliente…"
+            className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-11 pr-4 text-sm text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+        </div>
+      )}
 
       {/* Total adeudado por cliente */}
       {porCliente.length > 0 && (
@@ -234,7 +259,14 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {porCliente.map((c) => {
+                  {porClienteVisible.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-500">
+                        Ningún cliente coincide con «{busqueda.trim()}».
+                      </td>
+                    </tr>
+                  )}
+                  {porClienteVisible.map((c) => {
                     // Separar lo realmente vencido del próximo cobro futuro:
                     // una deuda vieja no debe marcar como vencido al cliente
                     // que ya está al día con sus compras nuevas.
@@ -389,7 +421,7 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
               </tr>
             </thead>
             <tbody>
-              {deudas.map((v) => {
+              {deudasVisibles.map((v) => {
                 const dias = diasRestantes(v.fechaCobro);
                 const est = estadoCobro(dias);
                 const abonado = totalAbonado(v);
@@ -462,6 +494,11 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
         {deudas.length === 0 && (
           <p className="px-5 py-10 text-center text-sm text-slate-500">
             No hay cuentas por cobrar. Las ventas marcadas como «fiado» aparecerán aquí.
+          </p>
+        )}
+        {deudas.length > 0 && deudasVisibles.length === 0 && (
+          <p className="px-5 py-10 text-center text-sm text-slate-500">
+            Ninguna deuda coincide con «{busqueda.trim()}».
           </p>
         )}
       </GlassCard>
