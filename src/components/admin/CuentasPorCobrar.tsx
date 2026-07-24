@@ -16,6 +16,7 @@ import {
   IconoWhatsApp,
 } from "@/components/icons";
 import { ReciboVenta } from "@/components/admin/ReciboVenta";
+import { RecordatorioCobro } from "@/components/admin/RecordatorioCobro";
 import { Boton } from "@/components/ui/Boton";
 import { Campo } from "@/components/ui/Campo";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -52,6 +53,7 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
   const [copiado, setCopiado] = useState(false);
   const [clienteAbierto, setClienteAbierto] = useState<string | null>(null);
   const [ventaRecibo, setVentaRecibo] = useState<Venta | null>(null);
+  const [ventaRecordar, setVentaRecordar] = useState<Venta | null>(null);
   const [busqueda, setBusqueda] = useState("");
 
   // Ordenadas por fecha de la venta (la deuda más vieja primero), para
@@ -376,6 +378,14 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                                           Cobrado
                                         </button>
                                         <button
+                                          onClick={() => setVentaRecordar(v)}
+                                          aria-label="Mensaje de cobro"
+                                          title="Mensaje de cobro"
+                                          className="grid h-7 w-7 place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 transition hover:bg-emerald-100"
+                                        >
+                                          <IconoWhatsApp className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
                                           onClick={() => setVentaRecibo(v)}
                                           aria-label="Ver recibo"
                                           title="Ver recibo"
@@ -475,6 +485,14 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
                           Cobrado
                         </button>
                         <button
+                          onClick={() => setVentaRecordar(v)}
+                          aria-label="Mensaje de cobro"
+                          title="Mensaje de cobro"
+                          className="grid h-8 w-8 place-items-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600 transition hover:bg-emerald-100"
+                        >
+                          <IconoWhatsApp className="h-4 w-4" />
+                        </button>
+                        <button
                           onClick={() => setVentaRecibo(v)}
                           aria-label="Ver recibo"
                           title="Ver recibo"
@@ -504,6 +522,7 @@ export function CuentasPorCobrar({ ventas }: { ventas: Venta[] }) {
       </GlassCard>
 
       <ReciboVenta venta={ventaRecibo} onCerrar={() => setVentaRecibo(null)} />
+      <RecordatorioCobro venta={ventaRecordar} onCerrar={() => setVentaRecordar(null)} />
 
       {/* Modal de respaldo de deudas */}
       <AnimatePresence>
