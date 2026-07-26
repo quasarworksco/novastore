@@ -21,6 +21,8 @@ import {
   IconoBuscar,
   IconoCaja,
   IconoCerrar,
+  IconoCheck,
+  IconoDescargar,
   IconoDolar,
   IconoGrafica,
   IconoMas,
@@ -121,6 +123,61 @@ export default function PaginaAdmin() {
   );
 
   const sinStock = useMemo(() => productos.filter((p) => p.stock <= 0), [productos]);
+
+  // Deudas que vencen hoy o ya están vencidas (para el panel "Para hoy").
+  const deudasParaHoy = useMemo(() => {
+    const fin = new Date();
+    fin.setHours(23, 59, 59, 999);
+    return porCobrar.filter((v) => v.fechaCobro !== null && v.fechaCobro <= fin.getTime());
+  }, [porCobrar]);
+  const montoParaHoy = useMemo(
+    () => deudasParaHoy.reduce((a, v) => a + saldoPendiente(v), 0),
+    [deudasParaHoy]
+  );
+
+  // Resumen del mes en curso: ingresos cobrados, costo, gastos y ganancia real.
+  const resumenMes = useMemo(() => {
+    const ahora = new Date();
+    const inicio = new Date(ahora.getFullYear(), ahora.getMonth(), 1).getTime();
+    const ventasMes = ventas.filter((v) => v.creadoEn >= inicio && v.estado !== "cancelada");
+    const cobradas = ventasMes.filter((v) => v.pagado !== false);
+    const ingresosMes = cobradas.reduce((a, v) => a + v.total, 0);
+    const costoMes = cobradas.reduce(
+      (a, v) => a + v.items.reduce((s, i) => s + i.costoUnitario * i.cantidad, 0),
+      0
+    );
+    const gastosMes = gastos
+      .filter((g) => g.creadoEn >= inicio)
+      .reduce((a, g) => a + g.monto, 0);
+    const nuevasPorCobrar = ventasMes
+      .filter((v) => v.fiado && v.pagado === false)
+      .reduce((a, v) => a + saldoPendiente(v), 0);
+    return {
+      ingresosMes,
+      gastosMes,
+      gananciaNeta: ingresosMes - costoMes - gastosMes,
+      nuevasPorCobrar,
+      cuenta: cobradas.length,
+    };
+  }, [ventas, gastos]);
+
+  const nombreMes = useMemo(
+    () => new Date().toLocaleDateString("es-VE", { month: "long", year: "numeric" }),
+    []
+  );
+
+  function descargarRespaldo() {
+    const datos = { generadoEn: new Date().toISOString(), productos, ventas, clientes, gastos };
+    const blob = new Blob([JSON.stringify(datos, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const f = new Date();
+    const sello = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}-${String(f.getDate()).padStart(2, "0")}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `novastore-respaldo-${sello}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const productosFiltrados = useMemo(() => {
     const q = busquedaProd.trim().toLowerCase();
@@ -334,6 +391,76 @@ export default function PaginaAdmin() {
         >
           {pestana === "resumen" && (
             <>
+              {/* Para hoy: lo que requiere atención de un vistazo */}
+              {pedidosPendientes.length > 0 || deudasParaHoy.length > 0 || sinStock.length > 0 ? (
+                <section className="rounded-3xl border border-blue-200/70 bg-gradient-to-br from-blue-50 to-sky-50 p-5 shadow-soft">
+                  <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-slate-600">
+                    <IconoAlerta className="h-4 w-4 text-blue-600" />
+                    Para hoy
+                  </h2>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {pedidosPendientes.length > 0 && (
+                      <button
+                        onClick={() => setPestana("ventas")}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-blue-300 hover:shadow-soft"
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-blue-100 text-blue-700">
+                          <IconoRecibo className="h-4 w-4" />
+                        </span>
+                        <span className="text-sm">
+                          <span className="block font-bold text-slate-900">
+                            {pedidosPendientes.length} pedido{pedidosPendientes.length === 1 ? "" : "s"}
+                          </span>
+                          <span className="text-xs text-slate-500">por aprobar</span>
+                        </span>
+                      </button>
+                    )}
+                    {deudasParaHoy.length > 0 && (
+                      <button
+                        onClick={() => setPestana("cobrar")}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-amber-300 hover:shadow-soft"
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-100 text-amber-700">
+                          <IconoBillete className="h-4 w-4" />
+                        </span>
+                        <span className="text-sm">
+                          <span className="block font-bold text-slate-900">
+                            {formatoMoneda(montoParaHoy)}
+                          </span>
+                          <span className="text-xs text-slate-500">
+                            {deudasParaHoy.length} deuda{deudasParaHoy.length === 1 ? "" : "s"} por cobrar hoy
+                          </span>
+                        </span>
+                      </button>
+                    )}
+                    {sinStock.length > 0 && (
+                      <button
+                        onClick={() => {
+                          setSoloSinStock(true);
+                          setPestana("productos");
+                        }}
+                        className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-rose-300 hover:shadow-soft"
+                      >
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose-100 text-rose-700">
+                          <IconoCaja className="h-4 w-4" />
+                        </span>
+                        <span className="text-sm">
+                          <span className="block font-bold text-slate-900">
+                            {sinStock.length} producto{sinStock.length === 1 ? "" : "s"}
+                          </span>
+                          <span className="text-xs text-slate-500">agotado{sinStock.length === 1 ? "" : "s"}, a reponer</span>
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                </section>
+              ) : (
+                <section className="flex items-center gap-2 rounded-3xl border border-emerald-200/70 bg-emerald-50 px-5 py-4 text-sm font-medium text-emerald-700">
+                  <IconoCheck className="h-4 w-4" />
+                  Todo al día: no hay pendientes por ahora.
+                </section>
+              )}
+
               <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard
                   etiqueta="Ingresos cobrados"
@@ -362,6 +489,49 @@ export default function PaginaAdmin() {
                   icono={IconoUsuarios}
                   tono="cian"
                 />
+              </section>
+
+              {/* Resumen del mes en curso: ganancia real + respaldo */}
+              <section className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
+                    Resumen de {nombreMes}
+                  </h2>
+                  <Boton variante="vidrio" onClick={descargarRespaldo}>
+                    <IconoDescargar className="h-4 w-4" />
+                    Descargar respaldo
+                  </Boton>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <StatCard
+                    etiqueta="Ventas del mes"
+                    valor={formatoMoneda(resumenMes.ingresosMes)}
+                    detalle={`${resumenMes.cuenta} ventas cobradas`}
+                    icono={IconoDolar}
+                    tono="verde"
+                  />
+                  <StatCard
+                    etiqueta="Gastos del mes"
+                    valor={formatoMoneda(resumenMes.gastosMes)}
+                    detalle="Compras y otros"
+                    icono={IconoRecibo}
+                    tono="ambar"
+                  />
+                  <StatCard
+                    etiqueta="Ganancia real"
+                    valor={formatoMoneda(resumenMes.gananciaNeta)}
+                    detalle="Ventas − costo − gastos"
+                    icono={IconoGrafica}
+                    tono={resumenMes.gananciaNeta >= 0 ? "verde" : "rojo"}
+                  />
+                  <StatCard
+                    etiqueta="Nuevo por cobrar"
+                    valor={formatoMoneda(resumenMes.nuevasPorCobrar)}
+                    detalle="Fiado de este mes"
+                    icono={IconoBillete}
+                    tono="cian"
+                  />
+                </div>
               </section>
 
               <TasaCambio />
