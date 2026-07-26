@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { Fragment, useMemo } from "react";
 import {
   IconoAlerta,
   IconoBasura,
@@ -48,6 +48,29 @@ function CeldaMargen({ producto }: { producto: Producto }) {
 }
 
 export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
+  // Agrupar por categoría (orden alfabético); dentro de cada grupo, los
+  // disponibles primero y las agotadas/inactivas al final. Así las gorras
+  // (y sus modelos ya vendidos) quedan juntas y aparte del resto.
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, Producto[]>();
+    for (const p of productos) {
+      const cat = p.categoria || "General";
+      const lista = mapa.get(cat);
+      if (lista) lista.push(p);
+      else mapa.set(cat, [p]);
+    }
+    const entradas = Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [, items] of entradas) {
+      items.sort((a, b) => {
+        const dispA = a.activo && a.stock > 0 ? 0 : 1;
+        const dispB = b.activo && b.stock > 0 ? 0 : 1;
+        if (dispA !== dispB) return dispA - dispB;
+        return a.nombre.localeCompare(b.nombre);
+      });
+    }
+    return entradas;
+  }, [productos]);
+
   return (
     <GlassCard className="overflow-hidden">
       <div className="overflow-x-auto">
@@ -66,19 +89,31 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence initial={false}>
-              {productos.map((p) => {
-                const porcentajeBase = porcentajeGanancia(p);
-                const porcentajeDivisas = porcentajeGanancia(p, "divisas");
-                return (
-                  <motion.tr
-                    key={p.id}
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50"
-                  >
+            {grupos.map(([categoria, items]) => {
+              const disponibles = items.filter((p) => p.activo && p.stock > 0).length;
+              return (
+                <Fragment key={categoria}>
+                  <tr className="border-b border-slate-200 bg-slate-50/80">
+                    <td
+                      colSpan={9}
+                      className="px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+                    >
+                      {categoria}
+                      <span className="ml-2 font-normal normal-case text-slate-400">
+                        {disponibles} disponible{disponibles === 1 ? "" : "s"} · {items.length} en total
+                      </span>
+                    </td>
+                  </tr>
+                  {items.map((p) => {
+                    const porcentajeBase = porcentajeGanancia(p);
+                    const porcentajeDivisas = porcentajeGanancia(p, "divisas");
+                    return (
+                      <tr
+                        key={p.id}
+                        className={`border-b border-slate-100 transition-colors last:border-0 hover:bg-slate-50 ${
+                          !p.activo || p.stock <= 0 ? "opacity-60" : ""
+                        }`}
+                      >
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl bg-slate-100">
@@ -151,10 +186,12 @@ export function TablaProductos({ productos, onEditar, onEliminar }: Props) {
                         </button>
                       </div>
                     </td>
-                  </motion.tr>
-                );
-              })}
-            </AnimatePresence>
+                      </tr>
+                    );
+                  })}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
