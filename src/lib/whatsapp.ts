@@ -2,7 +2,7 @@ import { formatoBs, formatoMoneda } from "./format";
 import type { ItemCarrito, MetodoPago } from "./types";
 import { precioSegunMetodo } from "./finance";
 
-const NUMERO_WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "584121002090";
+export const NUMERO_WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "584121002090";
 
 export function totalCarrito(items: ItemCarrito[], metodo: MetodoPago): number {
   return items.reduce(
