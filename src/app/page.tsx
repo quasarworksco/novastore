@@ -12,6 +12,7 @@ import {
 import { imagenOptimizada } from "@/lib/imagen";
 import { Footer } from "@/components/layout/Footer";
 import { Navbar } from "@/components/layout/Navbar";
+import { BotonWhatsApp } from "@/components/store/BotonWhatsApp";
 import { CartDrawer } from "@/components/store/CartDrawer";
 import { CategoryTabs } from "@/components/store/CategoryTabs";
 import { ProductCard } from "@/components/store/ProductCard";
@@ -355,6 +356,7 @@ function Tienda() {
       </main>
 
       <Footer />
+      <BotonWhatsApp />
       <CartDrawer />
       <ProductModal producto={detalle} onCerrar={() => setDetalle(null)} tasaBs={tasaBs} />
     </div>
