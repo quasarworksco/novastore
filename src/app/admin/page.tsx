@@ -9,6 +9,7 @@ import { CuentasPorCobrar } from "@/components/admin/CuentasPorCobrar";
 import { PanelGastos } from "@/components/admin/PanelGastos";
 import { TasaCambio } from "@/components/admin/TasaCambio";
 import { ListaWhatsApp } from "@/components/admin/ListaWhatsApp";
+import { CodigoQR } from "@/components/admin/CodigoQR";
 import { MasVendidos } from "@/components/admin/MasVendidos";
 import { ResumenFinanciero } from "@/components/admin/ResumenFinanciero";
 import { StatCard } from "@/components/admin/StatCard";
@@ -28,6 +29,7 @@ import {
   IconoMas,
   IconoMenu,
   IconoOjo,
+  IconoQR,
   IconoRecibo,
   IconoWhatsApp,
   IconoSalir,
@@ -79,6 +81,7 @@ export default function PaginaAdmin() {
   const [productoEnEdicion, setProductoEnEdicion] = useState<Producto | null>(null);
   const [ventaManualAbierta, setVentaManualAbierta] = useState(false);
   const [sembrando, setSembrando] = useState(false);
+  const [qrAbierto, setQrAbierto] = useState(false);
   const [busquedaProd, setBusquedaProd] = useState("");
   const [soloSinStock, setSoloSinStock] = useState(false);
 
@@ -497,10 +500,16 @@ export default function PaginaAdmin() {
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-600">
                     Resumen de {nombreMes}
                   </h2>
-                  <Boton variante="vidrio" onClick={descargarRespaldo}>
-                    <IconoDescargar className="h-4 w-4" />
-                    Descargar respaldo
-                  </Boton>
+                  <div className="flex flex-wrap gap-2">
+                    <Boton variante="vidrio" onClick={() => setQrAbierto(true)}>
+                      <IconoQR className="h-4 w-4" />
+                      Código QR
+                    </Boton>
+                    <Boton variante="vidrio" onClick={descargarRespaldo}>
+                      <IconoDescargar className="h-4 w-4" />
+                      Descargar respaldo
+                    </Boton>
+                  </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <StatCard
@@ -699,6 +708,7 @@ export default function PaginaAdmin() {
         productos={productos}
         onCerrar={() => setListaWaAbierta(false)}
       />
+      <CodigoQR abierto={qrAbierto} onCerrar={() => setQrAbierto(false)} />
     </div>
   );
 }
