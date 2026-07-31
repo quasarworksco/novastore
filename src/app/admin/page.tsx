@@ -83,6 +83,7 @@ export default function PaginaAdmin() {
   const [sembrando, setSembrando] = useState(false);
   const [qrAbierto, setQrAbierto] = useState(false);
   const [busquedaProd, setBusquedaProd] = useState("");
+  const [copiadoSinStock, setCopiadoSinStock] = useState(false);
   const [soloSinStock, setSoloSinStock] = useState(false);
 
   useEffect(() => {
@@ -168,6 +169,31 @@ export default function PaginaAdmin() {
     () => new Date().toLocaleDateString("es-VE", { month: "long", year: "numeric" }),
     []
   );
+
+  /** Copia al portapapeles la lista de productos agotados, agrupada por categoría. */
+  function copiarSinStock() {
+    const porCat = new Map<string, string[]>();
+    for (const p of sinStock) {
+      const cat = p.categoria || "General";
+      const lista = porCat.get(cat);
+      if (lista) lista.push(p.nombre);
+      else porCat.set(cat, [p.nombre]);
+    }
+    const cats = Array.from(porCat.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    const cuerpo = cats.flatMap(([cat, items]) => [
+      `${cat}:`,
+      ...items.sort((a, b) => a.localeCompare(b)).map((n) => `- ${n}`),
+      "",
+    ]);
+    const texto = ["NOVASTORE - Productos sin stock (reponer)", "", ...cuerpo].join("\n").trim();
+    navigator.clipboard
+      .writeText(texto)
+      .then(() => {
+        setCopiadoSinStock(true);
+        setTimeout(() => setCopiadoSinStock(false), 2000);
+      })
+      .catch(() => window.alert(texto));
+  }
 
   function descargarRespaldo() {
     const datos = { generadoEn: new Date().toISOString(), productos, ventas, clientes, gastos };
@@ -616,6 +642,15 @@ export default function PaginaAdmin() {
                     {sinStock.length}
                   </span>
                 </button>
+                {sinStock.length > 0 && (
+                  <button
+                    onClick={copiarSinStock}
+                    className="flex shrink-0 items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                  >
+                    <IconoCheck className="h-4 w-4" />
+                    {copiadoSinStock ? "¡Copiado!" : "Copiar sin stock"}
+                  </button>
+                )}
               </div>
               {(busquedaProd.trim() || soloSinStock) && (
                 <p className="-mt-4 text-xs text-slate-400">

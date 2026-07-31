@@ -61,7 +61,14 @@ function Tienda() {
   );
   const categorias = useMemo(() => ["Todos", ...soloCategorias], [soloCategorias]);
 
-  const destacados = useMemo(() => productos.filter((p) => p.destacado), [productos]);
+  // Con stock primero; los agotados quedan al final (orden estable).
+  const agotadoAlFinal = (a: Producto, b: Producto) =>
+    (a.stock > 0 ? 0 : 1) - (b.stock > 0 ? 0 : 1);
+
+  const destacados = useMemo(
+    () => productos.filter((p) => p.destacado).sort(agotadoAlFinal),
+    [productos]
+  );
 
   // Carrusel horizontal de destacados
   const carruselRef = useRef<HTMLDivElement>(null);
@@ -72,13 +79,16 @@ function Tienda() {
 
   const visibles = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    return productos.filter(
-      (p) =>
-        (categoria === "Todos" || p.categoria === categoria) &&
-        (texto === "" ||
-          p.nombre.toLowerCase().includes(texto) ||
-          p.descripcion.toLowerCase().includes(texto))
-    );
+    return productos
+      .filter(
+        (p) =>
+          (categoria === "Todos" || p.categoria === categoria) &&
+          (texto === "" ||
+            p.nombre.toLowerCase().includes(texto) ||
+            p.descripcion.toLowerCase().includes(texto))
+      )
+      .sort(agotadoAlFinal);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productos, categoria, busqueda]);
 
   return (
